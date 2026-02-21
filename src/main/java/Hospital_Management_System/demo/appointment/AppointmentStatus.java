@@ -1,4 +1,4 @@
-package appointment;
+package Hospital_Management_System.demo.appointment;
 
 public enum AppointmentStatus {
     PENDING,

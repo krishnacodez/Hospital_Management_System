@@ -1,8 +1,9 @@
-package patient;
+package Hospital_Management_System.demo.patient;
 
 
 //import com.krishna.demo.type.BloodGrouptype;
-import appointment.AppointmentEntity;
+import Hospital_Management_System.demo.Insurance.InsuranceEntity;
+import Hospital_Management_System.demo.appointment.AppointmentEntity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -14,7 +15,7 @@ import java.util.List;
 
 @Getter
 @Setter
-@ToString(exclude = {"appointments","insurance"})
+@ToString
 @Entity
 @Table(
         uniqueConstraints = {
@@ -42,16 +43,18 @@ public class PatientEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "blood_group")
-    private BloodGrouptype bloodGroup;
+    private BloodGroupType bloodGroup;
 
+    @ToString.Exclude
 
     @OneToOne(cascade = {CascadeType.MERGE, CascadeType.PERSIST
     },orphanRemoval = true,fetch = FetchType.LAZY)
     @JoinColumn(name = "patient_insurance_id")
-    private Insurance insurance;
+    private InsuranceEntity insurance;
+
 
     @JsonIgnore
-    @OneToMany(mappedBy = "patientEntity",cascade = {CascadeType.REMOVE},orphanRemoval = true)
+    @OneToMany(mappedBy = "patient",cascade = {CascadeType.REMOVE},orphanRemoval = true)
     @ToString.Exclude
     private List<AppointmentEntity> appointmentEntities;
 }

@@ -1,7 +1,9 @@
-package doctor;
+package Hospital_Management_System.demo.doctor;
 
-import appointment.AppointmentEntity;
+import Hospital_Management_System.demo.appointment.AppointmentEntity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import Hospital_Management_System.demo.department.DepartmentEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -14,7 +16,7 @@ import java.util.Set;
 @Getter
 @Setter
 @Builder
-@ToString(exclude = {"appointments","departments"})
+@ToString
 @AllArgsConstructor
 @NoArgsConstructor
 public class DoctorEntity {
@@ -28,8 +30,12 @@ public class DoctorEntity {
     @Column(nullable = false,unique = true,length = 100)
     private String email;
 
+    @ToString.Exclude
+
     @ManyToMany(mappedBy = "doctors",fetch = FetchType.LAZY)
-    private Set<Department> departments = new HashSet<>();
+    private Set<DepartmentEntity> departments = new HashSet<>();
+
+    @ToString.Exclude
 
     @JsonIgnore
     @OneToMany(mappedBy = "doctor",fetch = FetchType.LAZY)

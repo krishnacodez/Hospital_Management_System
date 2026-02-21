@@ -1,8 +1,8 @@
-package appointment;
+package Hospital_Management_System.demo.appointment;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import doctor.DoctorEntity;
+import Hospital_Management_System.demo.doctor.DoctorEntity;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import lombok.*;
@@ -11,7 +11,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import patient.PatientEntity;
+import Hospital_Management_System.demo.patient.PatientEntity;
 
 import java.time.LocalDateTime;
 
@@ -21,7 +21,7 @@ import java.time.LocalDateTime;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@ToString(exclude = {"patient","doctor"})
+@ToString
 
 
 
@@ -36,14 +36,16 @@ public class AppointmentEntity {
 
     @Column(nullable = false)
     private String reason;
+    @ToString.Exclude
 
     @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "patient_id", nullable = false)
-    private PatientEntity patientEntity;
+    private PatientEntity patient;
 
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
+    @ToString.Exclude
 
     @JoinColumn(name = "doctor_id", nullable = false)
     private DoctorEntity doctor;

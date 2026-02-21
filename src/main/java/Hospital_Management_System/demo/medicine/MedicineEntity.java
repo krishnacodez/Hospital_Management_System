@@ -1,9 +1,9 @@
-package medicine;
+package Hospital_Management_System.demo.medicine;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
-import prescription.PrescriptionMedicine;
+import Hospital_Management_System.demo.prescription.PrescriptionMedicine;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -14,7 +14,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(exclude = {"prescriptionMedicines"})
+@ToString
 public class MedicineEntity {
 
     @Id
@@ -35,6 +35,7 @@ public class MedicineEntity {
     private LocalDate expiryDate;
 
     private String description;
+    @ToString.Exclude
 
     @JsonIgnore
     @OneToMany(mappedBy = "medicine", fetch = FetchType.LAZY)

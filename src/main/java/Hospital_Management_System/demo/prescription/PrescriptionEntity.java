@@ -1,11 +1,11 @@
-package prescription;
+package Hospital_Management_System.demo.prescription;
 
-import appointment.AppointmentEntity;
+import Hospital_Management_System.demo.appointment.AppointmentEntity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import doctor.DoctorEntity;
+import Hospital_Management_System.demo.doctor.DoctorEntity;
 import jakarta.persistence.*;
 import lombok.*;
-import patient.PatientEntity;
+import Hospital_Management_System.demo.patient.PatientEntity;
 
 import java.util.List;
 
@@ -14,7 +14,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(exclude = {"patient","doctor","medicines"})
+@ToString
 
 @Entity
 public class PrescriptionEntity {
@@ -27,14 +27,18 @@ public class PrescriptionEntity {
     private String notes;
 
     @JsonIgnore
+    @ToString.Exclude
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "patient_id")
     private PatientEntity patient;
+    @ToString.Exclude
 
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "doctor_id")
     private DoctorEntity doctor;
+    @ToString.Exclude
 
     @JsonIgnore
     @OneToMany(mappedBy = "prescription",
