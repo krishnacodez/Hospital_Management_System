@@ -1,0 +1,30 @@
+package Hospital_Management_System.demo.patient;
+
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class PatientService {
+    private PatientRepository patientRepository;
+
+    public PatientService(PatientRepository patientRepository) {
+        this.patientRepository = patientRepository;
+    }
+
+
+    public PatientEntity createNewPatient(PatientEntity patient) {
+        return patientRepository.save(patient);
+
+    }
+
+    public List<PatientEntity> getAllPatients() {
+        return patientRepository.findAll();
+    }
+
+    public PatientEntity getPatientById(Long id) {
+        return patientRepository.findById(id).orElseThrow(()->new RuntimeException("patient not found"));
+
+    }
+}

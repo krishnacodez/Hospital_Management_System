@@ -31,7 +31,7 @@ public class DoctorEntity {
     private String email;
 
     @ToString.Exclude
-
+    @JsonIgnore
     @ManyToMany(mappedBy = "doctors",fetch = FetchType.LAZY)
     private Set<DepartmentEntity> departments = new HashSet<>();
 
@@ -39,7 +39,7 @@ public class DoctorEntity {
 
     @JsonIgnore
     @OneToMany(mappedBy = "doctor",fetch = FetchType.LAZY)
-    private List<AppointmentEntity  > appointments = new ArrayList<>();
+    private List<AppointmentEntity> appointments = new ArrayList<>();
 
     @Column(nullable = false)
     private boolean available = true;
