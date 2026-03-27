@@ -31,6 +31,8 @@ public class AppointmentEntity {
     private Long id;
 
 
+
+
     @Column(name = "appointment_time", nullable = false)
     private LocalDateTime appointmentTime;
 
