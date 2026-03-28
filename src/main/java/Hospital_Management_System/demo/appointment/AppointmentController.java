@@ -16,20 +16,20 @@ public class AppointmentController {
     }
 
     @PostMapping
-    public AppointmentEntity createApppointment(@RequestBody AppointmentRequestDto dto){
+    public AppointmentResponseDto createApppointment(@RequestBody AppointmentRequestDto dto){
         return appointmentService.createAppointment(dto);
     }
 
     @GetMapping("/patient/{patientId}")
 
-    public List<AppointmentEntity> getAppointmentByPatient(@PathVariable Long patientId){
+    public List<AppointmentResponseDto> getAppointmentByPatient(@PathVariable Long patientId){
         return appointmentService.getByPatient(patientId);
     }
 
 
     @GetMapping("/doctor/{doctorId}")
 
-    public List<AppointmentEntity> getAppointmentByDoctor(@PathVariable Long doctorId){
+    public List<AppointmentResponseDto> getAppointmentByDoctor(@PathVariable Long doctorId){
         return appointmentService.getByDoctor(doctorId);
 
     }

@@ -1,5 +1,6 @@
 package Hospital_Management_System.demo.patient;
 
+import Hospital_Management_System.demo.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -24,7 +25,7 @@ public class PatientService {
     }
 
     public PatientEntity getPatientById(Long id) {
-        return patientRepository.findById(id).orElseThrow(()->new RuntimeException("patient not found"));
+        return patientRepository.findById(id).orElseThrow(()->new ResourceNotFoundException("patient not found"));
 
     }
 }

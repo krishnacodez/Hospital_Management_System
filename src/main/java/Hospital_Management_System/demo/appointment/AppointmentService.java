@@ -2,10 +2,12 @@ package Hospital_Management_System.demo.appointment;
 
 import Hospital_Management_System.demo.doctor.DoctorEntity;
 import Hospital_Management_System.demo.doctor.DoctorRepository;
+import Hospital_Management_System.demo.exception.ResourceNotFoundException;
 import Hospital_Management_System.demo.patient.PatientEntity;
 import Hospital_Management_System.demo.patient.PatientRepository;
 import org.springframework.stereotype.Service;
 
+import java.nio.file.ReadOnlyFileSystemException;
 import java.time.LocalDateTime;
 import java.util.List;
 @Service
@@ -21,11 +23,13 @@ public class AppointmentService {
         this.appointmentRepository = appointmentRepository;
     }
 
-    public AppointmentEntity createAppointment(AppointmentRequestDto dto) {
-        PatientEntity patient = patientRepository.findById(dto.patientId).orElseThrow(() -> new RuntimeException("patient not found"));
+
+    //Create an appointment
+    public AppointmentResponseDto createAppointment(AppointmentRequestDto dto) {
+            PatientEntity patient = patientRepository.findById(dto.patientId).orElseThrow(() -> new ResourceNotFoundException("patient not found"));
 
 
-        DoctorEntity doctor = doctorRepository.findById(dto.doctorId).orElseThrow(() -> new RuntimeException("doctor not found"));
+        DoctorEntity doctor = doctorRepository.findById(dto.doctorId).orElseThrow(() -> new ResourceNotFoundException("doctor not found"));
 
         AppointmentEntity appointment = new AppointmentEntity();
         appointment.setDoctor(doctor);
@@ -34,17 +38,45 @@ public class AppointmentService {
         appointment.setStatus(AppointmentStatus.PENDING);
         appointment.setAppointmentTime(LocalDateTime.now());
 
-        return appointmentRepository.save(appointment);
+        AppointmentEntity saved = appointmentRepository.save(appointment);
+        return mapToDto(saved);
 
     }
 
-    public List<AppointmentEntity> getByPatient(Long patientId) {
-        return appointmentRepository.findByPatientId(patientId);
+
+
+    //get appointment by patient id
+
+    public List<AppointmentResponseDto> getByPatient(Long patientId) {
+        return appointmentRepository.findByPatientId(patientId)
+                .stream()
+                .map(this::mapToDto)
+                .toList();
     }
 
-    public List<AppointmentEntity> getByDoctor(Long doctorId) {
-        return appointmentRepository.findByDoctorId(doctorId);
 
 
+    //get appointment by doctor id
+    public List<AppointmentResponseDto> getByDoctor(Long doctorId) {
+        return appointmentRepository.findByDoctorId(doctorId)
+                .stream()
+                .map(this::mapToDto)
+                .toList();
+
+
+    }
+
+    // using dto by using manual mapping
+    public AppointmentResponseDto mapToDto(AppointmentEntity appointment){
+        AppointmentResponseDto dto = new AppointmentResponseDto();
+
+        dto.id = appointment.getId();
+        dto.doctorName = appointment.getDoctor().getName();
+        dto.patientName = appointment.getPatient().getName();
+        dto.reason = appointment.getReason();
+        dto.status = appointment.getStatus().name();
+        dto.appointmentTime = appointment.getAppointmentTime();
+
+        return dto;
     }
 }
