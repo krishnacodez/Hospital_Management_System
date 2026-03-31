@@ -1,15 +1,23 @@
 package Hospital_Management_System.demo.appointment;
 
+import Hospital_Management_System.demo.common.ApiResponse;
 import Hospital_Management_System.demo.doctor.DoctorEntity;
 import Hospital_Management_System.demo.doctor.DoctorRepository;
 import Hospital_Management_System.demo.exception.ResourceNotFoundException;
 import Hospital_Management_System.demo.patient.PatientEntity;
 import Hospital_Management_System.demo.patient.PatientRepository;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
+
 
 import java.nio.file.ReadOnlyFileSystemException;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
 @Service
 public class AppointmentService {
     private final PatientRepository patientRepository;
@@ -78,5 +86,32 @@ public class AppointmentService {
         dto.appointmentTime = appointment.getAppointmentTime();
 
         return dto;
+    }
+
+
+
+    // using pagination
+    public ApiResponse<Map<String, Object>> getAllAppointment(int page, int size){
+
+        Pageable pageable = PageRequest.of(page, size);
+
+        Page<AppointmentEntity> appointments = appointmentRepository.findAll(pageable);
+
+        List<AppointmentResponseDto> dtoList = appointments
+                .stream()
+                .map(this::mapToDto)
+                .toList();
+
+        Map<String, Object> responseData = new HashMap<>();
+        responseData.put("content", dtoList);
+        responseData.put("page", appointments.getNumber());
+        responseData.put("totalPages", appointments.getTotalPages());
+        responseData.put("totalElements", appointments.getTotalElements());
+
+        return new ApiResponse<>(
+                true,
+                "Appointments fetched successfully",
+                responseData
+        );
     }
 }

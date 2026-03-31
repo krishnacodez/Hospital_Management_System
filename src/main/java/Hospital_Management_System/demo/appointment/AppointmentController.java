@@ -6,6 +6,7 @@ import org.hibernate.cfg.Compatibility;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/appointments")
@@ -50,6 +51,15 @@ public class AppointmentController {
                 appointmentService.getByDoctor(doctorId)
 
         );
+
+    }
+
+    @GetMapping
+    public ApiResponse<Map<String,Object>> getAllAppointments(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size
+    ){
+        return appointmentService.getAllAppointment(page,size);
 
     }
 
