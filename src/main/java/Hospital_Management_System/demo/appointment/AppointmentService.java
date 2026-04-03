@@ -6,6 +6,8 @@ import Hospital_Management_System.demo.doctor.DoctorRepository;
 import Hospital_Management_System.demo.exception.ResourceNotFoundException;
 import Hospital_Management_System.demo.patient.PatientEntity;
 import Hospital_Management_System.demo.patient.PatientRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Page;
@@ -20,6 +22,7 @@ import java.util.Map;
 
 @Service
 public class AppointmentService {
+    private static final Logger log = LoggerFactory.getLogger(AppointmentService.class);
     private final PatientRepository patientRepository;
     private final DoctorRepository doctorRepository;
     private final AppointmentRepository appointmentRepository;
@@ -34,19 +37,20 @@ public class AppointmentService {
 
     //Create an appointment
     public AppointmentResponseDto createAppointment(AppointmentRequestDto dto) {
-            PatientEntity patient = patientRepository.findById(dto.patientId).orElseThrow(() -> new ResourceNotFoundException("patient not found"));
+            PatientEntity patient = patientRepository.findById(dto.getPatientId()).orElseThrow(() -> new ResourceNotFoundException("patient not found"));
 
 
-        DoctorEntity doctor = doctorRepository.findById(dto.doctorId).orElseThrow(() -> new ResourceNotFoundException("doctor not found"));
+        DoctorEntity doctor = doctorRepository.findById(dto.getDoctorId()).orElseThrow(() -> new ResourceNotFoundException("doctor not found"));
 
-        AppointmentEntity appointment = new AppointmentEntity();
-        appointment.setDoctor(doctor);
-        appointment.setPatient(patient);
-        appointment.setReason(dto.reason);
-        appointment.setStatus(AppointmentStatus.PENDING);
-        appointment.setAppointmentTime(LocalDateTime.now());
-
+        AppointmentEntity appointment = AppointmentEntity.builder()
+                .doctor(doctor)
+                .patient(patient)
+                .reason(dto.getReason())
+                .status(AppointmentStatus.PENDING)
+                .appointmentTime(LocalDateTime.now())
+                .build();
         AppointmentEntity saved = appointmentRepository.save(appointment);
+        log.info("Creating appointment for patientId: {} and doctorId: {}", dto.getPatientId(), dto.getDoctorId());
         return mapToDto(saved);
 
     }
@@ -56,6 +60,7 @@ public class AppointmentService {
     //get appointment by patient id
 
     public List<AppointmentResponseDto> getByPatient(Long patientId) {
+        log.info("Fetching appointments for patientId: {}", patientId);
         return appointmentRepository.findByPatientId(patientId)
                 .stream()
                 .map(this::mapToDto)
@@ -104,8 +109,8 @@ public class AppointmentService {
 
         Map<String, Object> responseData = new HashMap<>();
         responseData.put("content", dtoList);
-        responseData.put("page", appointments.getNumber());
-        responseData.put("totalPages", appointments.getTotalPages());
+        responseData.put("page", appointments.getNumber());//page no
+        responseData.put("totalPages", appointments.getTotalPages());//total pages
         responseData.put("totalElements", appointments.getTotalElements());
 
         return new ApiResponse<>(
