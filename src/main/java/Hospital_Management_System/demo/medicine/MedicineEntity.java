@@ -35,9 +35,9 @@ public class MedicineEntity {
     private LocalDate expiryDate;
 
     private String description;
-    @ToString.Exclude
-
-    @JsonIgnore
-    @OneToMany(mappedBy = "medicine", fetch = FetchType.LAZY)
-    private List<PrescriptionMedicine> prescriptionMedicines;
+//    @ToString.Exclude
+//
+//    @JsonIgnore
+//    @OneToMany(mappedBy = "medicine", fetch = FetchType.LAZY)
+//    private List<PrescriptionMedicine> prescriptionMedicines;
 }
