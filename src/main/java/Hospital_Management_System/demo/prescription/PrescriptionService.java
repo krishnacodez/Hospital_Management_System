@@ -72,12 +72,23 @@ public class PrescriptionService {
 
 
     private PrescriptionResponseDto mapToDto(PrescriptionEntity p){
+        List<PrescriptionMedicineDto> medicines = p.getMedicines()
+                .stream()
+                .map(pm->PrescriptionMedicineDto.builder()
+                        .name(pm.getMedicine().getName())
+                        .dosage(pm.getDosage())
+                        .quantity(pm.getQuantity())
+                        .build())
+                .toList();
+
+
         return PrescriptionResponseDto.builder()
                 .id(p.getId())
                 .patientName(p.getPatient().getName())
                 .doctorName(p.getDoctor().getName())
                 .diagnosis(p.getDiagnosis())
                 .notes(p.getNotes())
+                .medicines(medicines)
                 .build();
 
     }

@@ -40,12 +40,14 @@ public class PrescriptionEntity {
     private DoctorEntity doctor;
     @ToString.Exclude
 
-//    @JsonIgnore
-//    @OneToMany(mappedBy = "prescription",
-//            cascade = CascadeType.ALL,
+    @JsonIgnore
+    @OneToMany(mappedBy = "prescription",
+            cascade = CascadeType.ALL)
 //            orphanRemoval = true,
 //            fetch = FetchType.LAZY)
-//    private List<PrescriptionMedicine> medicines;
+
+
+    private List<PrescriptionMedicine> medicines;
 
     @JsonIgnore
     @OneToOne(fetch = FetchType.LAZY)

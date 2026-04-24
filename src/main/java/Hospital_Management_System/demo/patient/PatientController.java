@@ -5,8 +5,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
-
-@RestController
+@CrossOrigin(origins = "http://localhost:5173")@RestController
 @RequestMapping("patients")
 public class PatientController {
     private PatientService patientService;
@@ -31,5 +30,14 @@ public class PatientController {
     }
 
 
+    @DeleteMapping("/{id}")
+    public void deletePatientById(@PathVariable Long id){
+         patientService.deletePatientById(id);
+    }
+
+    @PutMapping("/{id}")
+    public PatientEntity updatePatientById(@PathVariable Long id,@RequestBody PatientEntity patient){
+        return patientService.updatePatient(id,patient);
+    }
 }
 
