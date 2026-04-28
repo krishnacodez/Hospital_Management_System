@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
+import type { ReactElement } from 'react'
 import {
   Navigate,
   NavLink,
@@ -28,6 +29,27 @@ function Layout() {
   )
 }
 
+type Role = 'ADMIN' | 'DOCTOR' | 'PATIENT'
+
+type ProtectedRouteProps = {
+  allowedRole: Role
+  children: ReactElement
+}
+
+function ProtectedRoute({ allowedRole, children }: ProtectedRouteProps) {
+  const role = localStorage.getItem('role')
+
+  if (!role) {
+    return <Navigate to="/login" replace />
+  }
+
+  if (role !== allowedRole) {
+    return <Navigate to="/login" replace />
+  }
+
+  return children
+}
+
 function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -37,7 +59,7 @@ function LoginPage() {
   const handleLogin = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const trimmedPassword = password.trim()
-
+ 
     if (trimmedPassword.length < 6) {
       setError('Password must be at least 6 characters.')
       return
@@ -88,16 +110,43 @@ function LoginPage() {
   )
 }
 
+function Dashboard({ title }: { title: string }) {
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    localStorage.removeItem('role')
+    navigate('/login')
+  }
+
+  return (
+    <section className="dashboard-page">
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          width: '100%',
+        }}
+      >
+        <h2>{title}</h2>
+        <button type="button" className="logout-button" onClick={handleLogout}>
+          Logout
+        </button>
+      </div>
+    </section>
+  )
+}
+
 function AdminPage() {
-  return <h2>Admin Dashboard</h2>
+  return <Dashboard title="Admin Dashboard" />
 }
 
 function DoctorPage() {
-  return <h2>Doctor Dashboard</h2>
+  return <Dashboard title="Doctor Dashboard" />
 }
 
 function PatientPage() {
-  return <h2>Patient Dashboard</h2>
+  return <Dashboard title="Patient Dashboard" />
 }
 
 function NotFoundPage() {
@@ -110,9 +159,30 @@ function App() {
       <Route element={<Layout />}>
         <Route index element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/admin" element={<AdminPage />} />
-        <Route path="/doctor" element={<DoctorPage />} />
-        <Route path="/patient" element={<PatientPage />} />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute allowedRole="ADMIN">
+              <AdminPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/doctor"
+          element={
+            <ProtectedRoute allowedRole="DOCTOR">
+              <DoctorPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/patient"
+          element={
+            <ProtectedRoute allowedRole="PATIENT">
+              <PatientPage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
