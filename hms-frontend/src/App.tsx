@@ -83,30 +83,36 @@ function LoginPage() {
   }
 
   return (
-    <form className="login-form" onSubmit={handleLogin}>
-      <h2>Login Page</h2>
-      <input
-        type="email"
-        placeholder="Enter email"
-        value={email}
-        onChange={(event) => setEmail(event.target.value)}
-        required
-      />
-      <input
-        type="password"
-        placeholder="Enter password"
-        value={password}
-        onChange={(event) => {
-          setPassword(event.target.value)
-          if (error) {
-            setError('')
-          }
-        }}
-        required
-      />
-      {error && <p className="error-text">{error}</p>}
-      <button type="submit">Login</button>
-    </form>
+    <section className="login-page">
+      <form className="login-form" onSubmit={handleLogin}>
+        <div className="login-copy">
+          <p className="login-eyebrow">Hospital Management System</p>
+          <h2>Welcome Back</h2>
+          <p className="login-subtitle">Access your dashboard</p>
+        </div>
+        <input
+          type="email"
+          placeholder="Enter email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          required
+        />
+        <input
+          type="password"
+          placeholder="Enter password"
+          value={password}
+          onChange={(event) => {
+            setPassword(event.target.value)
+            if (error) {
+              setError('')
+            }
+          }}
+          required
+        />
+        {error && <p className="error-text">{error}</p>}
+        <button type="submit">Login</button>
+      </form>
+    </section>
   )
 }
 
