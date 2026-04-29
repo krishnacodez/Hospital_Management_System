@@ -18,6 +18,12 @@ public class DoctorService {
     }
 
     public DoctorEntity createNewDoctor(DoctorEntity doctorEntity){
+        if (doctorEntity.getAvailable() == null) {
+            doctorEntity.setAvailable(true);
+        }
+        if (doctorEntity.getEmail() == null || doctorEntity.getEmail().trim().isEmpty()) {
+            doctorEntity.setEmail("doc" + System.currentTimeMillis() + "@test.com");
+        }
         return doctorRepository.save(doctorEntity);
 
     }
@@ -28,5 +34,12 @@ public class DoctorService {
 
     public DoctorEntity getDoctorById(Long id) {
         return doctorRepository.findById(id).orElseThrow(()-> new ResourceNotFoundException("doctor not found"));
+    }
+
+    public void deleteDoctorById(Long id) {
+        if (!doctorRepository.existsById(id)) {
+            throw new ResourceNotFoundException("doctor not found");
+        }
+        doctorRepository.deleteById(id);
     }
 }

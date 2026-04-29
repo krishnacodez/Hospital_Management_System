@@ -28,4 +28,13 @@ public class PatientService {
         return patientRepository.findById(id).orElseThrow(()->new ResourceNotFoundException("patient not found with id "));
 
     }
+
+        public void deletePatientById(Long id) {
+        if (!patientRepository.existsById(id)) {
+            throw new ResourceNotFoundException("patient not found with id ");
+        }
+         patientRepository.deleteById(id);
+
+
+    }
 }

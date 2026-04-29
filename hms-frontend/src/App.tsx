@@ -9,6 +9,8 @@ import {
   Routes,
   useNavigate,
 } from 'react-router-dom'
+import { AdminDashboard } from './admin/AdminDashboard'
+import { DashboardHeader } from './components/DashboardHeader'
 
 function Layout() {
   return (
@@ -116,43 +118,24 @@ function LoginPage() {
   )
 }
 
-function Dashboard({ title }: { title: string }) {
-  const navigate = useNavigate()
+function AdminPage() {
+  return <AdminDashboard />
+}
 
-  const handleLogout = () => {
-    localStorage.removeItem('role')
-    navigate('/login')
-  }
-
+function DoctorPage() {
   return (
     <section className="dashboard-page">
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          width: '100%',
-        }}
-      >
-        <h2>{title}</h2>
-        <button type="button" className="logout-button" onClick={handleLogout}>
-          Logout
-        </button>
-      </div>
+      <DashboardHeader title="Doctor Dashboard" />
     </section>
   )
 }
 
-function AdminPage() {
-  return <Dashboard title="Admin Dashboard" />
-}
-
-function DoctorPage() {
-  return <Dashboard title="Doctor Dashboard" />
-}
-
 function PatientPage() {
-  return <Dashboard title="Patient Dashboard" />
+  return (
+    <section className="dashboard-page">
+      <DashboardHeader title="Patient Dashboard" />
+    </section>
+  )
 }
 
 function NotFoundPage() {
