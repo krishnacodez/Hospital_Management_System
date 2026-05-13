@@ -1,4 +1,5 @@
 import type { FormEvent } from 'react'
+import { DOCTOR_SPECIALIZATION_OPTIONS } from './doctorSpecializations'
 
 type DoctorFormProps = {
   name: string
@@ -21,7 +22,8 @@ export function DoctorForm({
   onEmailChange,
   onSubmit,
 }: DoctorFormProps) {
-  const isInvalid = name.trim() === '' || specialization.trim() === ''
+  const isInvalid =
+    name.trim() === '' || specialization.trim() === ''
 
   return (
     <form className="form-card" onSubmit={onSubmit}>
@@ -37,16 +39,22 @@ export function DoctorForm({
           onChange={(event) => onNameChange(event.target.value)}
           required
         />
-        <input
-          type="text"
-          placeholder="Enter specialization"
+        <select
           value={specialization}
           onChange={(event) => onSpecializationChange(event.target.value)}
           required
-        />
+          aria-label="Doctor specialization"
+        >
+          <option value="">Select specialization</option>
+          {DOCTOR_SPECIALIZATION_OPTIONS.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
         <input
           type="email"
-          placeholder="Enter email (optional)"
+          placeholder="Enter email"
           value={email}
           onChange={(event) => onEmailChange(event.target.value)}
         />

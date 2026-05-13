@@ -10,6 +10,16 @@ import type { Doctor, Patient } from './types'
 
 type ActiveSection = 'patients' | 'doctors'
 
+/** Prefix with "Dr. " unless the name already starts with Dr / Dr. */
+function formatDoctorNameForSave(raw: string): string {
+  const trimmed = raw.trim()
+  if (trimmed === '') return ''
+  if (/^dr\.?\s+/i.test(trimmed) || /^dr\.[^\s]/i.test(trimmed)) {
+    return trimmed
+  }
+  return `Dr. ${trimmed}`
+}
+
 function CollapsiblePanel({
   isOpen,
   children,
@@ -143,7 +153,7 @@ export function AdminDashboard() {
       }
 
       const newPatient: Patient = await response.json()
-      setPatients((current) => [newPatient, ...current])
+      setPatients((prev) => [newPatient, ...prev])
       setPatientName('')
       setPatientEmail('')
       setPatientError('')
@@ -167,7 +177,7 @@ export function AdminDashboard() {
         throw new Error('Failed to delete patient.')
       }
 
-      setPatients((current) => current.filter((patient) => patient.id !== id))
+      setPatients((prev) => prev.filter((p) => p.id !== id))
       setPatientError('')
     } catch {
       setPatientError('Unable to delete patient right now.')
@@ -184,7 +194,13 @@ export function AdminDashboard() {
     const trimmedEmail = doctorEmail.trim()
 
     if (trimmedName === '' || trimmedSpecialization === '') {
-      setDoctorError('Both name and specialization are required.')
+      setDoctorError('Name and specialization are required.')
+      return
+    }
+
+    const formattedName = formatDoctorNameForSave(trimmedName)
+    if (formattedName === '') {
+      setDoctorError('Name is required.')
       return
     }
 
@@ -193,12 +209,6 @@ export function AdminDashboard() {
       setDoctorError('')
 
       const email = trimmedEmail || `doc${Date.now()}@test.com`
-      console.log({
-        name: trimmedName,
-        specialization: trimmedSpecialization,
-        email,
-        available: true,
-      })
 
       const response = await fetch('http://localhost:8080/doctors', {
         method: 'POST',
@@ -206,7 +216,7 @@ export function AdminDashboard() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: trimmedName,
+          name: formattedName,
           specialization: trimmedSpecialization,
           email,
           available: true,
@@ -218,7 +228,7 @@ export function AdminDashboard() {
       }
 
       const newDoctor: Doctor = await response.json()
-      setDoctors((current) => [newDoctor, ...current])
+      setDoctors((prev) => [newDoctor, ...prev])
       setDoctorName('')
       setDoctorSpecialization('')
       setDoctorEmail('')
@@ -243,7 +253,7 @@ export function AdminDashboard() {
         throw new Error('Failed to delete doctor.')
       }
 
-      setDoctors((current) => current.filter((doctor) => doctor.id !== id))
+      setDoctors((prev) => prev.filter((d) => d.id !== id))
       setDoctorError('')
     } catch {
       setDoctorError('Unable to delete doctor right now.')

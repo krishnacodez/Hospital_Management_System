@@ -59,7 +59,11 @@ public class PatientEntity {
 
 
     @JsonIgnore
-    @OneToMany(mappedBy = "patient",cascade = {CascadeType.REMOVE},orphanRemoval = true)
+    @OneToMany(
+            mappedBy = "patient",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
     @ToString.Exclude
-    private List<AppointmentEntity> appointmentEntities;
+    private List<AppointmentEntity> appointments;
 }

@@ -12,8 +12,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import Hospital_Management_System.demo.patient.PatientEntity;
+import Hospital_Management_System.demo.prescription.PrescriptionEntity;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -56,5 +59,14 @@ public class AppointmentEntity {
     @Column(nullable = false)
     private AppointmentStatus status;
 
+    @JsonIgnore
+    @ToString.Exclude
+    @OneToMany(
+            mappedBy = "appointment",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    @Builder.Default
+    private List<PrescriptionEntity> prescriptions = new ArrayList<>();
 
 }
