@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import Hospital_Management_System.demo.patient.PatientEntity;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,6 +27,8 @@ public class PrescriptionEntity {
     private String diagnosis;
 
     private String notes;
+
+    private LocalDateTime createdAt;
 
     @JsonIgnore
     @ToString.Exclude
@@ -53,10 +56,16 @@ public class PrescriptionEntity {
 
     @JsonIgnore
     @ToString.Exclude
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "appointment_id")
     private AppointmentEntity appointment;
 
-
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
 }
+
 

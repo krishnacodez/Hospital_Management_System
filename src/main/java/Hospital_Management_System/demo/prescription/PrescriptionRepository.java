@@ -8,4 +8,7 @@ public interface PrescriptionRepository extends JpaRepository<PrescriptionEntity
 
     List<PrescriptionEntity> findByPatientId(Long patient);
 
+    List<PrescriptionEntity> findByDoctor_Id(Long doctorId);
+
+    boolean existsByAppointmentId(Long appointmentId);
 }

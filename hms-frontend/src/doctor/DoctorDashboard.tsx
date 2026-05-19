@@ -1,7 +1,14 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { AppointmentRow } from '../admin/types'
 import { API_BASE } from '../auth/authApi'
 import { DashboardHeader } from '../components/DashboardHeader'
+import {
+  fetchMedicines,
+  fetchPrescriptionsForDoctor,
+} from '../prescription/prescriptionApi'
+import type { MedicineOption, PrescriptionDto } from '../prescription/types'
+import { PrescriptionViewModal } from '../components/PrescriptionViewModal'
+import { PrescriptionCreateModal } from './PrescriptionCreateModal'
 
 type ApiListEnvelope<T> = {
   success?: boolean
@@ -9,7 +16,6 @@ type ApiListEnvelope<T> = {
   data?: T | { data?: T; content?: T }
 }
 
-/** Normalize doctor-appointments API body: `{ data: T[] }` or nested `{ data: { data: T[] } }`. */
 function extractAppointmentList(
   responseData: ApiListEnvelope<AppointmentRow[]>,
 ): AppointmentRow[] {
@@ -78,69 +84,115 @@ function resolveDoctorId(): number | null {
 
 export function DoctorDashboard() {
   const [appointments, setAppointments] = useState<AppointmentRow[]>([])
+  const [prescriptions, setPrescriptions] = useState<PrescriptionDto[]>([])
+  const [medicines, setMedicines] = useState<MedicineOption[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [updatingId, setUpdatingId] = useState<number | null>(null)
+  const [createForAppointmentId, setCreateForAppointmentId] = useState<
+    number | null
+  >(null)
+  const [viewPrescription, setViewPrescription] = useState<PrescriptionDto | null>(
+    null,
+  )
+  const [toast, setToast] = useState('')
+
+  const prescriptionByAppointmentId = useMemo(() => {
+    const map = new Map<number, PrescriptionDto>()
+    for (const p of prescriptions) {
+      if (p.appointmentId != null && p.appointmentId !== undefined) {
+        map.set(p.appointmentId, p)
+      }
+    }
+    return map
+  }, [prescriptions])
 
   const loadAppointments = useCallback(async () => {
+    const doctorId = resolveDoctorId()
+    if (doctorId === null) {
+      setAppointments([])
+      return
+    }
+    const url = `${API_BASE}/appointments/doctor/${doctorId}`
+    const response = await fetch(url)
+    const responseData = (await response.json()) as ApiListEnvelope<
+      AppointmentRow[]
+    >
+    if (!response.ok || responseData.success === false) {
+      throw new Error(
+        responseData.message || `Request failed (${response.status})`,
+      )
+    }
+    setAppointments(extractAppointmentList(responseData))
+  }, [])
+
+  const loadPrescriptions = useCallback(async () => {
+    const doctorId = resolveDoctorId()
+    if (doctorId === null) {
+      setPrescriptions([])
+      return
+    }
+    setPrescriptions(await fetchPrescriptionsForDoctor(doctorId))
+  }, [])
+
+  const loadMedicines = useCallback(async () => {
+    setMedicines(await fetchMedicines())
+  }, [])
+
+  const refreshAll = useCallback(async () => {
     try {
       setLoading(true)
       setError('')
-
       const doctorId = resolveDoctorId()
       if (doctorId === null) {
         setError(
           'Missing doctor account in this session. Please log out and sign in again.',
         )
         setAppointments([])
+        setPrescriptions([])
         return
       }
-
-      const url = `${API_BASE}/appointments/doctor/${doctorId}`
-      const response = await fetch(url)
-      const responseData = (await response.json()) as ApiListEnvelope<
-        AppointmentRow[]
-      >
-
-      if (!response.ok || responseData.success === false) {
-        throw new Error(
-          responseData.message || `Request failed (${response.status})`,
-        )
-      }
-
-      setAppointments(extractAppointmentList(responseData))
+      await Promise.all([loadAppointments(), loadPrescriptions(), loadMedicines()])
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : 'Unable to load appointments.'
+        err instanceof Error ? err.message : 'Unable to load dashboard data.'
       setError(message)
       setAppointments([])
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [loadAppointments, loadMedicines, loadPrescriptions])
 
   useEffect(() => {
-    void loadAppointments()
-  }, [loadAppointments])
+    void refreshAll()
+  }, [refreshAll])
+
+  useEffect(() => {
+    if (!toast) {
+      return
+    }
+    const t = window.setTimeout(() => setToast(''), 4500)
+    return () => window.clearTimeout(t)
+  }, [toast])
 
   const patchStatus = async (id: number, status: 'APPROVED' | 'COMPLETED') => {
     try {
       setUpdatingId(id)
       setError('')
-      const response = await fetch(
-        `${API_BASE}/appointments/${id}/status`,
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status }),
-        },
-      )
+      const response = await fetch(`${API_BASE}/appointments/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      })
       if (!response.ok) {
         throw new Error(await readErrorMessage(response))
       }
       setAppointments((prev) =>
         prev.map((a) => (a.id === id ? { ...a, status } : a)),
       )
+      if (status === 'COMPLETED') {
+        await loadPrescriptions()
+      }
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Unable to update status.'
@@ -149,6 +201,16 @@ export function DoctorDashboard() {
       setUpdatingId(null)
     }
   }
+
+  const createAppointmentPatientName = useMemo(() => {
+    if (createForAppointmentId == null) {
+      return ''
+    }
+    return (
+      appointments.find((a) => a.id === createForAppointmentId)?.patientName ??
+      ''
+    )
+  }, [appointments, createForAppointmentId])
 
   return (
     <section className="dashboard-page doctor-dashboard">
@@ -160,10 +222,12 @@ export function DoctorDashboard() {
           <h3>My appointments</h3>
           <p className="management-subtitle">
             Review visits for your patients and move each appointment through
-            PENDING → APPROVED → COMPLETED.
+            PENDING → APPROVED → COMPLETED. After completion you can issue a
+            prescription.
           </p>
         </div>
 
+        {toast ? <p className="success-text prescription-toast">{toast}</p> : null}
         {error && <p className="error-text">{error}</p>}
 
         {loading ? (
@@ -175,6 +239,7 @@ export function DoctorDashboard() {
             {appointments.map((appointment) => {
               const status = appointment.status.toUpperCase()
               const busy = updatingId === appointment.id
+              const rx = prescriptionByAppointmentId.get(appointment.id)
 
               return (
                 <article
@@ -215,6 +280,29 @@ export function DoctorDashboard() {
                           {busy ? 'Updating…' : 'Mark as Completed'}
                         </button>
                       )}
+                      {status === 'COMPLETED' && (
+                        <>
+                          {rx ? (
+                            <button
+                              type="button"
+                              className="logout-button doctor-rx-button"
+                              onClick={() => setViewPrescription(rx)}
+                            >
+                              View Prescription
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="primary-button doctor-rx-button"
+                              onClick={() =>
+                                setCreateForAppointmentId(appointment.id)
+                              }
+                            >
+                              Create Prescription
+                            </button>
+                          )}
+                        </>
+                      )}
                     </div>
                   </div>
                 </article>
@@ -223,6 +311,26 @@ export function DoctorDashboard() {
           </div>
         )}
       </div>
+
+      {createForAppointmentId != null ? (
+        <PrescriptionCreateModal
+          appointmentId={createForAppointmentId}
+          patientName={createAppointmentPatientName}
+          medicines={medicines}
+          onClose={() => setCreateForAppointmentId(null)}
+          onSuccess={async () => {
+            setToast('Prescription saved successfully.')
+            await Promise.all([loadPrescriptions(), loadMedicines(), loadAppointments()])
+          }}
+        />
+      ) : null}
+
+      {viewPrescription ? (
+        <PrescriptionViewModal
+          prescription={viewPrescription}
+          onClose={() => setViewPrescription(null)}
+        />
+      ) : null}
     </section>
   )
 }

@@ -4,6 +4,9 @@ import { readApiErrorMessage } from '../admin/apiError'
 import type { AppointmentRow, Doctor } from '../admin/types'
 import { API_BASE } from '../auth/authApi'
 import { DashboardHeader } from '../components/DashboardHeader'
+import { PrescriptionViewModal } from '../components/PrescriptionViewModal'
+import { fetchPrescriptionsForPatient } from '../prescription/prescriptionApi'
+import type { PrescriptionDto } from '../prescription/types'
 
 /** `datetime-local` value → ISO local string Jackson accepts for LocalDateTime */
 function normalizeDateTimeLocal(value: string): string {
@@ -78,6 +81,32 @@ function statusBadgeClass(status: string): string {
   return 'status-badge'
 }
 
+function confidenceBadgeClass(level: string): string {
+  const u = level.toUpperCase()
+  if (u === 'HIGH') {
+    return 'confidence-badge confidence-badge--high'
+  }
+  if (u === 'MEDIUM') {
+    return 'confidence-badge confidence-badge--medium'
+  }
+  return 'confidence-badge confidence-badge--low'
+}
+
+function formatPrescriptionDate(iso: string | null | undefined): string {
+  if (!iso) {
+    return '—'
+  }
+  try {
+    const d = new Date(iso)
+    if (Number.isNaN(d.getTime())) {
+      return iso
+    }
+    return d.toLocaleString()
+  } catch {
+    return iso
+  }
+}
+
 function resolvePatientId(): number | null {
   const raw = localStorage.getItem('patientId')
   if (!raw) {
@@ -87,8 +116,32 @@ function resolvePatientId(): number | null {
   return Number.isFinite(n) ? n : null
 }
 
+type RecommendDoctorResponse = {
+  specialization: string
+  confidence: string
+  matchedKeywords: string[]
+  message: string
+}
+
+function normalizeSpec(s: string | null | undefined): string {
+  return (s ?? '').trim().toLowerCase()
+}
+
 function isDoctorBookable(doctor: Doctor): boolean {
   return doctor.available !== false
+}
+
+function isRecommendedDoctor(
+  doctor: Doctor,
+  rec: RecommendDoctorResponse | null,
+): boolean {
+  if (!rec) {
+    return false
+  }
+  return (
+    normalizeSpec(doctor.specialization) ===
+    rec.specialization.trim().toLowerCase()
+  )
 }
 
 export function PatientDashboard() {
@@ -103,6 +156,13 @@ export function PatientDashboard() {
   const [appointmentsLoading, setAppointmentsLoading] = useState(true)
   const [appointmentsError, setAppointmentsError] = useState('')
 
+  const [prescriptions, setPrescriptions] = useState<PrescriptionDto[]>([])
+  const [prescriptionsLoading, setPrescriptionsLoading] = useState(true)
+  const [prescriptionsError, setPrescriptionsError] = useState('')
+  const [viewPrescription, setViewPrescription] = useState<PrescriptionDto | null>(
+    null,
+  )
+
   const [selectedDoctorId, setSelectedDoctorId] = useState('')
   const [appointmentDateTime, setAppointmentDateTime] = useState('')
   const [reason, setReason] = useState('')
@@ -110,9 +170,36 @@ export function PatientDashboard() {
   const [bookingError, setBookingError] = useState('')
   const [bookingSuccess, setBookingSuccess] = useState('')
 
-  const bookableDoctors = useMemo(
-    () => doctors.filter(isDoctorBookable),
-    [doctors],
+  const [symptomInput, setSymptomInput] = useState('')
+  const [analyzing, setAnalyzing] = useState(false)
+  const [analyzeDots, setAnalyzeDots] = useState(0)
+  const [recommendError, setRecommendError] = useState('')
+  const [recommendation, setRecommendation] =
+    useState<RecommendDoctorResponse | null>(null)
+
+  const sortedDoctors = useMemo(() => {
+    const target = recommendation?.specialization?.trim().toLowerCase()
+    if (!target) {
+      return doctors
+    }
+    return [...doctors].sort((a, b) => {
+      const matchA = normalizeSpec(a.specialization) === target
+      const matchB = normalizeSpec(b.specialization) === target
+      if (matchA !== matchB) {
+        return matchA ? -1 : 1
+      }
+      const ba = isDoctorBookable(a) ? 0 : 1
+      const bb = isDoctorBookable(b) ? 0 : 1
+      if (ba !== bb) {
+        return ba - bb
+      }
+      return a.name.localeCompare(b.name)
+    })
+  }, [doctors, recommendation])
+
+  const sortedBookableDoctors = useMemo(
+    () => sortedDoctors.filter(isDoctorBookable),
+    [sortedDoctors],
   )
 
   const datetimeMin = useMemo(() => localDatetimeInputMin(), [])
@@ -176,6 +263,35 @@ export function PatientDashboard() {
     }
   }, [patientId])
 
+  const sortedPrescriptions = useMemo(() => {
+    return [...prescriptions].sort((a, b) => {
+      const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0
+      const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0
+      return tb - ta
+    })
+  }, [prescriptions])
+
+  const loadPrescriptions = useCallback(async () => {
+    if (patientId === null) {
+      setPrescriptions([])
+      setPrescriptionsLoading(false)
+      return
+    }
+    try {
+      setPrescriptionsLoading(true)
+      setPrescriptionsError('')
+      const list = await fetchPrescriptionsForPatient(patientId)
+      setPrescriptions(list)
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Unable to load prescriptions.'
+      setPrescriptionsError(message)
+      setPrescriptions([])
+    } finally {
+      setPrescriptionsLoading(false)
+    }
+  }, [patientId])
+
   useEffect(() => {
     void loadDoctors()
   }, [loadDoctors])
@@ -183,6 +299,77 @@ export function PatientDashboard() {
   useEffect(() => {
     void loadAppointments()
   }, [loadAppointments])
+
+  useEffect(() => {
+    void loadPrescriptions()
+  }, [loadPrescriptions])
+
+  useEffect(() => {
+    if (!analyzing) {
+      return
+    }
+    const id = window.setInterval(() => {
+      setAnalyzeDots((n) => (n + 1) % 4)
+    }, 450)
+    return () => window.clearInterval(id)
+  }, [analyzing])
+
+  useEffect(() => {
+    if (!recommendation) {
+      return
+    }
+    const target = recommendation.specialization.trim().toLowerCase()
+    const first = sortedBookableDoctors.find(
+      (d) => normalizeSpec(d.specialization) === target,
+    )
+    if (first) {
+      setSelectedDoctorId(String(first.id))
+    }
+  }, [recommendation, sortedBookableDoctors])
+
+  const handleAnalyzeSymptoms = async () => {
+    setRecommendError('')
+    const trimmed = symptomInput.trim()
+    if (trimmed.length < 3) {
+      setRecommendError(
+        'Please enter at least 3 characters describing your symptoms.',
+      )
+      return
+    }
+    setAnalyzing(true)
+    setAnalyzeDots(0)
+    setRecommendation(null)
+    try {
+      const response = await fetch(`${API_BASE}/recommend-doctor`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ symptoms: trimmed }),
+      })
+      const data = (await response.json()) as RecommendDoctorResponse & {
+        errors?: Record<string, string>
+        message?: string
+      }
+      if (!response.ok) {
+        throw new Error(
+          readApiErrorMessage(data, 'Unable to analyze symptoms right now.'),
+        )
+      }
+      setRecommendation({
+        specialization: data.specialization,
+        confidence: data.confidence,
+        matchedKeywords: Array.isArray(data.matchedKeywords)
+          ? data.matchedKeywords
+          : [],
+        message: data.message ?? '',
+      })
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Unable to analyze symptoms.'
+      setRecommendError(message)
+    } finally {
+      setAnalyzing(false)
+    }
+  }
 
   const handleBookAppointment = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -255,6 +442,7 @@ export function PatientDashboard() {
       setAppointmentDateTime('')
       setReason('')
       await loadAppointments()
+      await loadPrescriptions()
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Unable to book appointment.'
@@ -286,13 +474,132 @@ export function PatientDashboard() {
         <p className="status-text">Signed in as {displayName}</p>
       ) : null}
 
+      <div className="symptom-ai-hero management-card">
+        <div className="management-header">
+          <p className="login-eyebrow">Smart care</p>
+          <h3>
+            <span aria-hidden>🩺 </span>
+            Find the Right Specialist
+          </h3>
+          <p className="management-subtitle">
+            Describe your symptoms in plain language. Our clinical keyword engine
+            suggests the best-matching specialty—no data leaves this hospital app.
+          </p>
+        </div>
+        <div className="form-grid">
+          <textarea
+            className="symptom-ai-textarea"
+            placeholder="Example: chest pain and shortness of breath, or skin rash and itching..."
+            value={symptomInput}
+            onChange={(e) => {
+              setSymptomInput(e.target.value)
+              if (recommendError) {
+                setRecommendError('')
+              }
+            }}
+            rows={5}
+            aria-label="Describe your symptoms"
+          />
+        </div>
+        {recommendError ? <p className="error-text">{recommendError}</p> : null}
+        <div className="symptom-ai-actions">
+          <button
+            type="button"
+            className="primary-button symptom-ai-button"
+            disabled={analyzing || symptomInput.trim().length < 3}
+            onClick={() => void handleAnalyzeSymptoms()}
+          >
+            {analyzing
+              ? `Analyzing symptoms${'.'.repeat(analyzeDots)}`
+              : 'Analyze Symptoms'}
+          </button>
+          {recommendation ? (
+            <button
+              type="button"
+              className="logout-button"
+              onClick={() => {
+                setRecommendation(null)
+                setRecommendError('')
+              }}
+            >
+              Clear recommendation
+            </button>
+          ) : null}
+        </div>
+        {analyzing ? (
+          <p className="symptom-ai-scanning" aria-live="polite">
+            Scanning symptom patterns…
+          </p>
+        ) : null}
+        {recommendation ? (
+          <div className="symptom-ai-result">
+            <div className="symptom-ai-result-header">
+              <span className="symptom-ai-result-icon" aria-hidden>
+                🧠
+              </span>
+              <div className="symptom-ai-result-titles">
+                <p className="login-eyebrow">AI recommendation</p>
+                <h4>Recommended specialist</h4>
+              </div>
+              <span
+                className={confidenceBadgeClass(recommendation.confidence)}
+              >
+                {recommendation.confidence}
+              </span>
+            </div>
+            <p className="symptom-ai-specialist">{recommendation.specialization}</p>
+            <p className="symptom-ai-message">{recommendation.message}</p>
+            {recommendation.matchedKeywords.length > 0 ? (
+              <div className="symptom-chip-row">
+                <span className="symptom-chip-label">Matched symptoms</span>
+                <div className="symptom-chip-wrap">
+                  {recommendation.matchedKeywords.map((kw) => (
+                    <span key={kw} className="symptom-chip">
+                      {kw}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            <div className="symptom-ai-suggested">
+              <p className="symptom-chip-label">Suggested doctors</p>
+              {sortedBookableDoctors.filter((d) =>
+                isRecommendedDoctor(d, recommendation),
+              ).length === 0 ? (
+                <p className="status-text">
+                  No available doctors for this specialization yet. See the full
+                  directory below.
+                </p>
+              ) : (
+                <div className="item-list item-list--compact">
+                  {sortedBookableDoctors
+                    .filter((d) => isRecommendedDoctor(d, recommendation))
+                    .map((d) => (
+                      <article
+                        key={d.id}
+                        className="item-card item-card--ai-recommended"
+                      >
+                        <h4>{d.name}</h4>
+                        <p className="appointment-meta">
+                          {d.specialization ?? 'General'}
+                        </p>
+                      </article>
+                    ))}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : null}
+      </div>
+
       <div className="management-card">
         <div className="management-header">
           <p className="login-eyebrow">Care team</p>
           <h3>Available doctors</h3>
           <p className="management-subtitle">
-            Browse our specialists. Only doctors marked available can be selected
-            for booking.
+            {recommendation
+              ? 'Recommended specialty doctors appear first and are highlighted.'
+              : 'Browse our specialists. Only doctors marked available can be selected for booking.'}
           </p>
         </div>
         {doctorsError && <p className="error-text">{doctorsError}</p>}
@@ -302,14 +609,21 @@ export function PatientDashboard() {
           <p className="status-text">No doctors are listed yet.</p>
         ) : (
           <div className="item-list">
-            {doctors.map((doctor) => {
+            {sortedDoctors.map((doctor) => {
               const available = isDoctorBookable(doctor)
+              const rec = isRecommendedDoctor(doctor, recommendation)
               return (
-                <article key={doctor.id} className="item-card">
+                <article
+                  key={doctor.id}
+                  className={`item-card${rec ? ' item-card--ai-recommended' : ''}`}
+                >
                   <h4>{doctor.name}</h4>
                   <p className="appointment-meta">
                     {doctor.specialization ?? 'General'}
                   </p>
+                  {rec ? (
+                    <p className="symptom-ai-match-badge">Recommended match</p>
+                  ) : null}
                   <p
                     className={
                       available
@@ -344,7 +658,7 @@ export function PatientDashboard() {
             aria-label="Select doctor"
           >
             <option value="">Select doctor</option>
-            {bookableDoctors.map((d) => (
+            {sortedBookableDoctors.map((d) => (
               <option key={d.id} value={String(d.id)}>
                 {d.name} — {d.specialization ?? 'General'}
               </option>
@@ -376,7 +690,7 @@ export function PatientDashboard() {
             rows={4}
           />
         </div>
-        {doctors.length > 0 && bookableDoctors.length === 0 ? (
+        {doctors.length > 0 && sortedBookableDoctors.length === 0 ? (
           <p className="status-text">
             No doctors are available for booking right now.
           </p>
@@ -386,7 +700,7 @@ export function PatientDashboard() {
           className="primary-button"
           disabled={
             bookingSubmitting ||
-            bookableDoctors.length === 0 ||
+            sortedBookableDoctors.length === 0 ||
             selectedDoctorId === ''
           }
         >
@@ -434,6 +748,63 @@ export function PatientDashboard() {
           </div>
         )}
       </div>
+
+      <div className="management-card patient-prescriptions-card">
+        <div className="management-header">
+          <p className="login-eyebrow">Pharmacy</p>
+          <h3>My prescriptions</h3>
+          <p className="management-subtitle">
+            Prescriptions issued after completed visits. Tap a card to see full
+            details.
+          </p>
+        </div>
+        {prescriptionsError ? (
+          <p className="error-text">{prescriptionsError}</p>
+        ) : null}
+        {prescriptionsLoading ? (
+          <p className="status-text">Loading prescriptions...</p>
+        ) : sortedPrescriptions.length === 0 ? (
+          <p className="status-text patient-prescriptions-empty">
+            You have no prescriptions yet. After your doctor completes a visit,
+            they may add one here.
+          </p>
+        ) : (
+          <div className="item-list">
+            {sortedPrescriptions.map((rx) => (
+              <button
+                key={rx.id}
+                type="button"
+                className="item-card patient-prescription-card"
+                onClick={() => setViewPrescription(rx)}
+              >
+                <div className="patient-prescription-card-inner">
+                  <div className="appointment-card-row">
+                    <h4>{rx.doctorName}</h4>
+                    <span className="status-badge status-badge--approved">
+                      Rx
+                    </span>
+                  </div>
+                  <p className="appointment-meta">
+                    {formatPrescriptionDate(rx.createdAt ?? null)}
+                  </p>
+                  <p className="appointment-reason">{rx.diagnosis}</p>
+                  <p className="patient-prescription-preview">
+                    {rx.medicines.length} medicine
+                    {rx.medicines.length === 1 ? '' : 's'}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {viewPrescription ? (
+        <PrescriptionViewModal
+          prescription={viewPrescription}
+          onClose={() => setViewPrescription(null)}
+        />
+      ) : null}
     </section>
   )
 }
