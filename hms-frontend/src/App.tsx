@@ -10,7 +10,9 @@ import {
   useNavigate,
 } from 'react-router-dom'
 import { AdminDashboard } from './admin/AdminDashboard'
-import { DashboardHeader } from './components/DashboardHeader'
+import { loginRequest, persistAuthSession } from './auth/authApi'
+import { DoctorDashboard } from './doctor/DoctorDashboard'
+import { PatientDashboard } from './patient/PatientDashboard'
 
 function Layout() {
   return (
@@ -56,32 +58,44 @@ function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const navigate = useNavigate()
 
-  const handleLogin = (event: FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    const trimmedEmail = email.trim()
     const trimmedPassword = password.trim()
- 
-    if (trimmedPassword.length < 6) {
-      setError('Password must be at least 6 characters.')
+
+    if (!trimmedEmail) {
+      setError('Email is required.')
+      return
+    }
+    if (!trimmedPassword) {
+      setError('Password is required.')
       return
     }
 
     setError('')
+    setSubmitting(true)
 
-    let role = 'PATIENT'
-    let destination = '/patient'
+    try {
+      const data = await loginRequest(trimmedEmail, trimmedPassword)
+      persistAuthSession(data)
 
-    if (email.trim().toLowerCase() === 'admin@gmail.com') {
-      role = 'ADMIN'
-      destination = '/admin'
-    } else if (email.trim().toLowerCase() === 'doctor@gmail.com') {
-      role = 'DOCTOR'
-      destination = '/doctor'
+      if (data.role === 'ADMIN') {
+        navigate('/admin')
+      } else if (data.role === 'DOCTOR') {
+        navigate('/doctor')
+      } else {
+        navigate('/patient')
+      }
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Invalid credentials'
+      setError(message)
+    } finally {
+      setSubmitting(false)
     }
-
-    localStorage.setItem('role', role)
-    navigate(destination)
   }
 
   return (
@@ -112,7 +126,9 @@ function LoginPage() {
           required
         />
         {error && <p className="error-text">{error}</p>}
-        <button type="submit">Login</button>
+        <button type="submit" disabled={submitting}>
+          {submitting ? 'Signing in…' : 'Login'}
+        </button>
       </form>
     </section>
   )
@@ -123,19 +139,11 @@ function AdminPage() {
 }
 
 function DoctorPage() {
-  return (
-    <section className="dashboard-page">
-      <DashboardHeader title="Doctor Dashboard" />
-    </section>
-  )
+  return <DoctorDashboard />
 }
 
 function PatientPage() {
-  return (
-    <section className="dashboard-page">
-      <DashboardHeader title="Patient Dashboard" />
-    </section>
-  )
+  return <PatientDashboard />
 }
 
 function NotFoundPage() {

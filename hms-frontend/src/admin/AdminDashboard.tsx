@@ -2,13 +2,26 @@ import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { ReactNode } from 'react'
 import { DashboardHeader } from '../components/DashboardHeader'
+import { fetchAllAppointments } from './appointmentApi'
+import { AppointmentForm } from './AppointmentForm'
+import { AppointmentList } from './AppointmentList'
 import { DoctorForm } from './DoctorForm'
 import { DoctorList } from './DoctorList'
 import { PatientForm } from './PatientForm'
 import { PatientList } from './PatientList'
-import type { Doctor, Patient } from './types'
+import { readApiErrorMessage } from './apiError'
+import type { AppointmentRow, Doctor, Patient } from './types'
 
-type ActiveSection = 'patients' | 'doctors'
+type ActiveSection = 'patients' | 'doctors' | 'appointments'
+
+/** `datetime-local` value → ISO local string Jackson accepts for LocalDateTime */
+function normalizeDateTimeLocal(value: string): string {
+  const trimmed = value.trim()
+  if (trimmed.length === 16 && trimmed.includes('T')) {
+    return `${trimmed}:00`
+  }
+  return trimmed
+}
 
 /** Prefix with "Dr. " unless the name already starts with Dr / Dr. */
 function formatDoctorNameForSave(raw: string): string {
@@ -55,6 +68,18 @@ export function AdminDashboard() {
   const [deletingDoctorId, setDeletingDoctorId] = useState<number | null>(null)
   const [doctorError, setDoctorError] = useState('')
   const doctorsLoadedRef = useRef(false)
+
+  const [appointments, setAppointments] = useState<AppointmentRow[]>([])
+  const [appointmentPatientId, setAppointmentPatientId] = useState('')
+  const [appointmentDoctorId, setAppointmentDoctorId] = useState('')
+  const [appointmentDateTime, setAppointmentDateTime] = useState('')
+  const [appointmentReason, setAppointmentReason] = useState('')
+  const [appointmentsLoading, setAppointmentsLoading] = useState(false)
+  const [appointmentSubmitting, setAppointmentSubmitting] = useState(false)
+  const [deletingAppointmentId, setDeletingAppointmentId] = useState<
+    number | null
+  >(null)
+  const [appointmentError, setAppointmentError] = useState('')
 
   useEffect(() => {
     const loadPatients = async () => {
@@ -108,6 +133,46 @@ export function AdminDashboard() {
     }
   }, [activeSection])
 
+  useEffect(() => {
+    if (activeSection !== 'appointments') {
+      return
+    }
+
+    const loadAppointmentSection = async () => {
+      try {
+        setAppointmentsLoading(true)
+        setAppointmentError('')
+
+        if (!patientsLoadedRef.current) {
+          const pRes = await fetch('http://localhost:8080/patients')
+          if (pRes.ok) {
+            const data: Patient[] = await pRes.json()
+            setPatients(data)
+            patientsLoadedRef.current = true
+          }
+        }
+
+        if (!doctorsLoadedRef.current) {
+          const dRes = await fetch('http://localhost:8080/doctors')
+          if (dRes.ok) {
+            const data: Doctor[] = await dRes.json()
+            setDoctors(data)
+            doctorsLoadedRef.current = true
+          }
+        }
+
+        const list = await fetchAllAppointments()
+        setAppointments(list)
+      } catch {
+        setAppointmentError('Unable to load appointment data right now.')
+      } finally {
+        setAppointmentsLoading(false)
+      }
+    }
+
+    void loadAppointmentSection()
+  }, [activeSection])
+
   const handleAddPatient = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
@@ -145,10 +210,11 @@ export function AdminDashboard() {
 
       if (!response.ok) {
         const data = await response.json().catch(() => null)
-        const apiMessage =
-          (data && typeof data === 'object' && (data.name || data.email)) || null
         throw new Error(
-          apiMessage || 'Unable to add patient. Please check the input values.',
+          readApiErrorMessage(
+            data,
+            'Unable to add patient. Please check the input values.',
+          ),
         )
       }
 
@@ -224,7 +290,13 @@ export function AdminDashboard() {
       })
 
       if (!response.ok) {
-        throw new Error('Unable to add doctor. Please check the input values.')
+        const data = await response.json().catch(() => null)
+        throw new Error(
+          readApiErrorMessage(
+            data,
+            'Unable to add doctor. Please check the input values.',
+          ),
+        )
       }
 
       const newDoctor: Doctor = await response.json()
@@ -262,6 +334,106 @@ export function AdminDashboard() {
     }
   }
 
+  const handleCreateAppointment = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    const trimmedReason = appointmentReason.trim()
+    if (
+      appointmentPatientId === '' ||
+      appointmentDoctorId === '' ||
+      appointmentDateTime.trim() === '' ||
+      trimmedReason === ''
+    ) {
+      setAppointmentError('Please fill in patient, doctor, date & time, and reason.')
+      return
+    }
+
+    const patientId = Number(appointmentPatientId)
+    const doctorId = Number(appointmentDoctorId)
+    const appointmentTime = normalizeDateTimeLocal(appointmentDateTime)
+
+    try {
+      setAppointmentSubmitting(true)
+      setAppointmentError('')
+
+      const response = await fetch('http://localhost:8080/appointments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          patientId,
+          doctorId,
+          appointmentTime,
+          reason: trimmedReason,
+          status: 'PENDING',
+        }),
+      })
+
+      const body = (await response.json()) as {
+        success?: boolean
+        message?: string
+        data?: AppointmentRow
+      }
+
+      if (!response.ok || body.success === false) {
+        throw new Error(
+          body.message || 'Unable to create appointment. Please check the form.',
+        )
+      }
+
+      if (!body.data) {
+        throw new Error('Invalid response from server.')
+      }
+
+      setAppointments((prev) => [body.data as AppointmentRow, ...prev])
+      setAppointmentPatientId('')
+      setAppointmentDoctorId('')
+      setAppointmentDateTime('')
+      setAppointmentReason('')
+      setAppointmentError('')
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Unable to create appointment right now.'
+      setAppointmentError(message)
+    } finally {
+      setAppointmentSubmitting(false)
+    }
+  }
+
+  const handleDeleteAppointment = async (id: number) => {
+    try {
+      setDeletingAppointmentId(id)
+      const response = await fetch(`http://localhost:8080/appointments/${id}`, {
+        method: 'DELETE',
+      })
+
+      let body: { success?: boolean; message?: string } = {}
+      try {
+        body = (await response.json()) as { success?: boolean; message?: string }
+      } catch {
+        // non-JSON body
+      }
+
+      if (!response.ok || body.success === false) {
+        throw new Error(body.message || 'Failed to delete appointment.')
+      }
+
+      setAppointments((prev) => prev.filter((a) => a.id !== id))
+      setAppointmentError('')
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Unable to delete appointment right now.'
+      setAppointmentError(message)
+    } finally {
+      setDeletingAppointmentId(null)
+    }
+  }
+
   return (
     <section className="dashboard-page admin-dashboard">
       <DashboardHeader title="Admin Dashboard" />
@@ -284,6 +456,15 @@ export function AdminDashboard() {
           onClick={() => setActiveSection('doctors')}
         >
           Manage Doctors
+        </button>
+        <button
+          type="button"
+          className={`switch-button ${
+            activeSection === 'appointments' ? 'active' : ''
+          }`}
+          onClick={() => setActiveSection('appointments')}
+        >
+          Manage Appointments
         </button>
       </div>
 
@@ -345,6 +526,44 @@ export function AdminDashboard() {
             isLoading={doctorsLoading}
             deletingDoctorId={deletingDoctorId}
             onDelete={handleDeleteDoctor}
+          />
+        </div>
+      </CollapsiblePanel>
+
+      <CollapsiblePanel isOpen={activeSection === 'appointments'}>
+        <div className="management-card">
+          <div className="management-header">
+            <p className="login-eyebrow">Management</p>
+            <h3>Appointment Management</h3>
+            <p className="management-subtitle">
+              Create, view, and remove appointments by linking patients and doctors.
+            </p>
+          </div>
+
+          <AppointmentForm
+            patientId={appointmentPatientId}
+            doctorId={appointmentDoctorId}
+            appointmentDateTime={appointmentDateTime}
+            reason={appointmentReason}
+            patients={patients}
+            doctors={doctors}
+            isSubmitting={appointmentSubmitting}
+            onPatientIdChange={setAppointmentPatientId}
+            onDoctorIdChange={setAppointmentDoctorId}
+            onDateTimeChange={setAppointmentDateTime}
+            onReasonChange={setAppointmentReason}
+            onSubmit={handleCreateAppointment}
+          />
+
+          {appointmentError && (
+            <p className="error-text">{appointmentError}</p>
+          )}
+
+          <AppointmentList
+            appointments={appointments}
+            isLoading={appointmentsLoading}
+            deletingAppointmentId={deletingAppointmentId}
+            onDelete={handleDeleteAppointment}
           />
         </div>
       </CollapsiblePanel>

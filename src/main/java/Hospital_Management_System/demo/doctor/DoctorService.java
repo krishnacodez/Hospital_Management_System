@@ -1,7 +1,7 @@
 package Hospital_Management_System.demo.doctor;
 
+import Hospital_Management_System.demo.common.EmailUniquenessService;
 import Hospital_Management_System.demo.exception.ResourceNotFoundException;
-import Hospital_Management_System.demo.patient.PatientRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -9,12 +9,14 @@ import java.util.List;
 @Service
 
 public class DoctorService {
-    private DoctorRepository doctorRepository;
+    private final DoctorRepository doctorRepository;
+    private final EmailUniquenessService emailUniquenessService;
 
-    public DoctorService(DoctorRepository doctorRepository,
-                         PatientRepository patientRepository){
+    public DoctorService(
+            DoctorRepository doctorRepository,
+            EmailUniquenessService emailUniquenessService) {
         this.doctorRepository = doctorRepository;
-
+        this.emailUniquenessService = emailUniquenessService;
     }
 
     public DoctorEntity createNewDoctor(DoctorEntity doctorEntity){
@@ -23,6 +25,8 @@ public class DoctorService {
         }
         if (doctorEntity.getEmail() == null || doctorEntity.getEmail().trim().isEmpty()) {
             doctorEntity.setEmail("doc" + System.currentTimeMillis() + "@test.com");
+        } else {
+            emailUniquenessService.ensureEmailIsAvailable(doctorEntity.getEmail());
         }
         return doctorRepository.save(doctorEntity);
 

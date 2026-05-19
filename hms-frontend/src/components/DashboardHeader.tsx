@@ -5,6 +5,9 @@ export function DashboardHeader({ title }: { title: string }) {
 
   const handleLogout = () => {
     localStorage.removeItem('role')
+    localStorage.removeItem('doctorId')
+    localStorage.removeItem('patientId')
+    localStorage.removeItem('name')
     navigate('/login')
   }
 

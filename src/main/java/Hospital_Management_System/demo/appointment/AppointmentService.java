@@ -11,10 +11,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
-
-import java.nio.file.ReadOnlyFileSystemException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -42,12 +42,19 @@ public class AppointmentService {
 
         DoctorEntity doctor = doctorRepository.findById(dto.getDoctorId()).orElseThrow(() -> new ResourceNotFoundException("doctor not found"));
 
+        LocalDateTime appointmentTime = dto.getAppointmentTime() != null
+                ? dto.getAppointmentTime()
+                : LocalDateTime.now();
+        AppointmentStatus status = dto.getStatus() != null
+                ? dto.getStatus()
+                : AppointmentStatus.PENDING;
+
         AppointmentEntity appointment = AppointmentEntity.builder()
                 .doctor(doctor)
                 .patient(patient)
                 .reason(dto.getReason())
-                .status(AppointmentStatus.PENDING)
-                .appointmentTime(LocalDateTime.now())
+                .status(status)
+                .appointmentTime(appointmentTime)
                 .build();
         AppointmentEntity saved = appointmentRepository.save(appointment);
         log.info("Creating appointment for patientId: {} and doctorId: {}", dto.getPatientId(), dto.getDoctorId());
@@ -118,5 +125,45 @@ public class AppointmentService {
                 "Appointments fetched successfully",
                 responseData
         );
+    }
+
+    public void deleteAppointmentById(Long id) {
+        if (!appointmentRepository.existsById(id)) {
+            throw new ResourceNotFoundException("appointment not found");
+        }
+        appointmentRepository.deleteById(id);
+    }
+
+    /**
+     * Updates status with allowed transitions: PENDING → APPROVED → COMPLETED.
+     */
+    public void updateAppointmentStatus(Long id, String statusRaw) {
+        if (statusRaw == null || statusRaw.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "status is required");
+        }
+        AppointmentStatus newStatus;
+        try {
+            newStatus = AppointmentStatus.valueOf(statusRaw.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid status value");
+        }
+
+        AppointmentEntity appointment = appointmentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("appointment not found"));
+
+        AppointmentStatus current = appointment.getStatus();
+        if (current == AppointmentStatus.PENDING && newStatus != AppointmentStatus.APPROVED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "only APPROVED is allowed from PENDING");
+        }
+        if (current == AppointmentStatus.APPROVED && newStatus != AppointmentStatus.COMPLETED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "only COMPLETED is allowed from APPROVED");
+        }
+        if (current == AppointmentStatus.COMPLETED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "appointment is already completed");
+        }
+
+        appointment.setStatus(newStatus);
+        appointmentRepository.save(appointment);
+        log.info("Updated appointment {} status to {}", id, newStatus);
     }
 }

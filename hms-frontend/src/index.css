@@ -207,6 +207,53 @@ body {
   margin: 0 auto;
 }
 
+.doctor-dashboard {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.patient-dashboard {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.success-text {
+  margin: 0;
+  color: #207567;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.doctor-availability {
+  margin: 0.35rem 0 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.doctor-availability--yes {
+  color: #207567;
+}
+
+.doctor-availability--no {
+  color: #9a7a82;
+}
+
+.doctor-appointment-card {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.doctor-appointment-actions {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.doctor-appointment-actions .primary-button {
+  align-self: flex-start;
+}
+
 .admin-switcher {
   display: flex;
   gap: 0.85rem;
@@ -332,7 +379,8 @@ body {
 
 .patient-form-grid input,
 .form-grid input,
-.form-grid select {
+.form-grid select,
+.form-grid textarea {
   padding: 0.9rem 1rem;
   font-size: 1rem;
   border: 1px solid #d6e6df;
@@ -345,11 +393,82 @@ body {
     box-shadow 0.2s ease;
 }
 
+.form-grid textarea {
+  grid-column: 1 / -1;
+  min-height: 5.5rem;
+  resize: vertical;
+  font-family: inherit;
+}
+
 .patient-form-grid input:focus,
 .form-grid input:focus,
-.form-grid select:focus {
+.form-grid select:focus,
+.form-grid textarea:focus {
   border-color: #42a48d;
   box-shadow: 0 0 0 4px rgba(66, 164, 141, 0.16);
+}
+
+.form-grid--appointment {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #28423a;
+}
+
+.status-badge--pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-badge--approved {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-badge--completed {
+  background: #cce5ff;
+  color: #004085;
+}
+
+.appointment-card {
+  align-items: flex-start;
+}
+
+.appointment-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.appointment-card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.appointment-card-row h4 {
+  margin-bottom: 0.25rem;
+}
+
+.appointment-doctor,
+.appointment-meta,
+.appointment-reason {
+  margin: 0.2rem 0 0;
+  color: #6c7d77;
+  font-size: 0.95rem;
+}
+
+.appointment-reason {
+  font-style: italic;
 }
 
 .primary-button,
@@ -422,6 +541,10 @@ body {
   .item-card {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .appointment-card .delete-button {
+    width: 100%;
   }
 
   .delete-button {
