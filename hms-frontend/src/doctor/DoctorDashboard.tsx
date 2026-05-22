@@ -2,6 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { AppointmentRow } from '../admin/types'
 import { API_BASE } from '../auth/authApi'
 import { DashboardHeader } from '../components/DashboardHeader'
+import { EmptyState } from '../components/EmptyState'
+import { LoadingSpinner } from '../components/LoadingSpinner'
+import { StatusBadge } from '../components/StatusBadge'
 import {
   fetchMedicines,
   fetchPrescriptionsForDoctor,
@@ -45,20 +48,6 @@ function formatAppointmentTime(iso: string): string {
   } catch {
     return iso
   }
-}
-
-function statusBadgeClass(status: string): string {
-  const normalized = status.toUpperCase()
-  if (normalized === 'PENDING') {
-    return 'status-badge status-badge--pending'
-  }
-  if (normalized === 'APPROVED') {
-    return 'status-badge status-badge--approved'
-  }
-  if (normalized === 'COMPLETED') {
-    return 'status-badge status-badge--completed'
-  }
-  return 'status-badge'
 }
 
 async function readErrorMessage(response: Response): Promise<string> {
@@ -212,9 +201,38 @@ export function DoctorDashboard() {
     )
   }, [appointments, createForAppointmentId])
 
+  const pendingCount = appointments.filter(
+    (a) => a.status.toUpperCase() === 'PENDING',
+  ).length
+  const approvedCount = appointments.filter(
+    (a) => a.status.toUpperCase() === 'APPROVED',
+  ).length
+
   return (
     <section className="dashboard-page doctor-dashboard">
-      <DashboardHeader title="Doctor Dashboard" />
+      <DashboardHeader
+        title="Doctor Dashboard"
+        subtitle="Review visits, update status, and issue prescriptions"
+      />
+
+      <div className="dashboard-stats">
+        <div className="stat-card">
+          <p className="stat-card__label">Total visits</p>
+          <p className="stat-card__value">{appointments.length}</p>
+        </div>
+        <div className="stat-card">
+          <p className="stat-card__label">Pending</p>
+          <p className="stat-card__value">{pendingCount}</p>
+        </div>
+        <div className="stat-card stat-card--accent">
+          <p className="stat-card__label">Approved</p>
+          <p className="stat-card__value">{approvedCount}</p>
+        </div>
+        <div className="stat-card">
+          <p className="stat-card__label">Prescriptions</p>
+          <p className="stat-card__value">{prescriptions.length}</p>
+        </div>
+      </div>
 
       <div className="management-card">
         <div className="management-header">
@@ -231,9 +249,13 @@ export function DoctorDashboard() {
         {error && <p className="error-text">{error}</p>}
 
         {loading ? (
-          <p className="status-text">Loading appointments...</p>
+          <LoadingSpinner label="Loading appointments…" />
         ) : appointments.length === 0 ? (
-          <p className="status-text">No appointments assigned to you yet.</p>
+          <EmptyState
+            icon="📋"
+            title="No appointments yet"
+            description="Patient visits will appear here once scheduled and assigned to you."
+          />
         ) : (
           <div className="item-list">
             {appointments.map((appointment) => {
@@ -249,9 +271,7 @@ export function DoctorDashboard() {
                   <div className="appointment-card-body">
                     <div className="appointment-card-row">
                       <h4>{appointment.patientName}</h4>
-                      <span className={statusBadgeClass(appointment.status)}>
-                        {appointment.status}
-                      </span>
+                      <StatusBadge status={appointment.status} />
                     </div>
                     <p className="appointment-meta">
                       {formatAppointmentTime(appointment.appointmentTime)}

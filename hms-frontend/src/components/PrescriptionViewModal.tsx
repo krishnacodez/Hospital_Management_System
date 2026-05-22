@@ -36,17 +36,17 @@ export function PrescriptionViewModal({
         </button>
       }
     >
-      <p className="prescription-modal-eyebrow">Prescription detail</p>
+      <p className="prescription-modal-eyebrow">Clinical record · MediSphere</p>
       <div className="prescription-view-grid">
-        <div>
+        <div className="prescription-view-card">
           <span className="prescription-view-label">Doctor</span>
           <p className="prescription-view-value">{prescription.doctorName}</p>
         </div>
-        <div>
+        <div className="prescription-view-card">
           <span className="prescription-view-label">Patient</span>
           <p className="prescription-view-value">{prescription.patientName}</p>
         </div>
-        <div>
+        <div className="prescription-view-card">
           <span className="prescription-view-label">Issued</span>
           <p className="prescription-view-value">
             {formatRxDate(prescription.createdAt ?? null)}
@@ -59,12 +59,14 @@ export function PrescriptionViewModal({
       </div>
       {prescription.notes ? (
         <div className="prescription-view-block">
-          <span className="prescription-view-label">Notes</span>
+          <span className="prescription-view-label">Clinical notes</span>
           <p className="prescription-view-value">{prescription.notes}</p>
         </div>
       ) : null}
       <div className="prescription-view-block">
-        <span className="prescription-view-label">Medicines</span>
+        <span className="prescription-view-label">
+          Medicines ({prescription.medicines.length})
+        </span>
         <ul className="prescription-medicine-list">
           {prescription.medicines.map((m, index) => (
             <li key={`${m.medicineName}-${index}`}>

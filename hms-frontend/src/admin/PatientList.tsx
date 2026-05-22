@@ -1,3 +1,5 @@
+import { EmptyState } from '../components/EmptyState'
+import { LoadingSpinner } from '../components/LoadingSpinner'
 import type { Patient } from './types'
 
 type PatientListProps = {
@@ -14,11 +16,17 @@ export function PatientList({
   onDelete,
 }: PatientListProps) {
   if (isLoading) {
-    return <p className="status-text">Loading patients...</p>
+    return <LoadingSpinner label="Loading patients…" />
   }
 
   if (patients.length === 0) {
-    return <p className="status-text">No patients found yet.</p>
+    return (
+      <EmptyState
+        icon="👥"
+        title="No patients yet"
+        description="Add your first patient using the form above."
+      />
+    )
   }
 
   return (

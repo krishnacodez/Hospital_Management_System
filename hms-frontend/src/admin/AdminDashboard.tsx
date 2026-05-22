@@ -434,9 +434,35 @@ export function AdminDashboard() {
     }
   }
 
+  const pendingCount = appointments.filter(
+    (a) => a.status.toUpperCase() === 'PENDING',
+  ).length
+
   return (
     <section className="dashboard-page admin-dashboard">
-      <DashboardHeader title="Admin Dashboard" />
+      <DashboardHeader
+        title="Admin Dashboard"
+        subtitle="Manage patients, doctors, and hospital appointments"
+      />
+
+      <div className="dashboard-stats">
+        <div className="stat-card">
+          <p className="stat-card__label">Patients</p>
+          <p className="stat-card__value">{patients.length}</p>
+        </div>
+        <div className="stat-card">
+          <p className="stat-card__label">Doctors</p>
+          <p className="stat-card__value">{doctors.length}</p>
+        </div>
+        <div className="stat-card stat-card--accent">
+          <p className="stat-card__label">Appointments</p>
+          <p className="stat-card__value">{appointments.length}</p>
+        </div>
+        <div className="stat-card">
+          <p className="stat-card__label">Pending</p>
+          <p className="stat-card__value">{pendingCount}</p>
+        </div>
+      </div>
 
       <div className="admin-switcher">
         <button

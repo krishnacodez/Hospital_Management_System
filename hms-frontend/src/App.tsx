@@ -3,32 +3,32 @@ import type { FormEvent } from 'react'
 import type { ReactElement } from 'react'
 import {
   Navigate,
-  NavLink,
   Outlet,
   Route,
   Routes,
+  useLocation,
   useNavigate,
 } from 'react-router-dom'
 import { AdminDashboard } from './admin/AdminDashboard'
 import { loginRequest, persistAuthSession } from './auth/authApi'
+import { MediSphereLogo } from './components/MediSphereLogo'
+import { Sidebar } from './components/Sidebar'
 import { DoctorDashboard } from './doctor/DoctorDashboard'
 import { PatientDashboard } from './patient/PatientDashboard'
 
 function Layout() {
+  const location = useLocation()
+  const isLogin =
+    location.pathname === '/login' || location.pathname === '/'
+
   return (
-    <div className="app-shell">
-      <header className="app-header">
-        <h1>Hospital Management System</h1>
-        <nav className="app-nav">
-          <NavLink to="/login">Login</NavLink>
-          <NavLink to="/admin">Admin</NavLink>
-          <NavLink to="/doctor">Doctor</NavLink>
-          <NavLink to="/patient">Patient</NavLink>
-        </nav>
-      </header>
-      <main className="app-content">
-        <Outlet />
-      </main>
+    <div className={`app-shell${isLogin ? ' app-shell--login' : ''}`}>
+      <Sidebar />
+      <div className="app-main">
+        <main className="app-content">
+          <Outlet />
+        </main>
+      </div>
     </div>
   )
 }
@@ -100,22 +100,67 @@ function LoginPage() {
 
   return (
     <section className="login-page">
-      <form className="login-form" onSubmit={handleLogin}>
+      <div className="login-page__bg" aria-hidden>
+        <div className="login-page__orb login-page__orb--1" />
+        <div className="login-page__orb login-page__orb--2" />
+        <div className="login-page__grid" />
+      </div>
+
+      <div className="login-page__hero">
+        <MediSphereLogo size="lg" />
+        <h1 className="login-page__headline">
+          AI-powered healthcare, simplified
+        </h1>
+        <p className="login-page__lead">
+          Manage appointments, prescriptions, and intelligent specialist
+          recommendations — all in one modern hospital platform.
+        </p>
+        <ul className="login-page__features">
+          <li>
+            <span className="login-page__feature-icon" aria-hidden>✦</span>
+            Smart symptom analysis
+          </li>
+          <li>
+            <span className="login-page__feature-icon" aria-hidden>✦</span>
+            Role-based dashboards
+          </li>
+          <li>
+            <span className="login-page__feature-icon" aria-hidden>✦</span>
+            Secure clinical workflows
+          </li>
+        </ul>
+      </div>
+
+      <form
+        className={`login-form${submitting ? ' login-form--submitting' : ''}`}
+        onSubmit={handleLogin}
+      >
         <div className="login-copy">
-          <p className="login-eyebrow">Hospital Management System</p>
-          <h2>Welcome Back</h2>
-          <p className="login-subtitle">Access your dashboard</p>
+          <p className="login-eyebrow">Welcome back</p>
+          <h2>Sign in to MediSphere</h2>
+          <p className="login-subtitle">
+            Enter your credentials to access your dashboard
+          </p>
         </div>
+        <label className="field-label" htmlFor="login-email">
+          Email
+        </label>
         <input
+          id="login-email"
           type="email"
-          placeholder="Enter email"
+          placeholder="you@hospital.com"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
+          autoComplete="email"
           required
         />
+        <label className="field-label" htmlFor="login-password">
+          Password
+        </label>
         <input
+          id="login-password"
           type="password"
-          placeholder="Enter password"
+          placeholder="••••••••"
           value={password}
           onChange={(event) => {
             setPassword(event.target.value)
@@ -123,11 +168,23 @@ function LoginPage() {
               setError('')
             }
           }}
+          autoComplete="current-password"
           required
         />
-        {error && <p className="error-text">{error}</p>}
-        <button type="submit" disabled={submitting}>
-          {submitting ? 'Signing in…' : 'Login'}
+        {error ? (
+          <p className="error-text error-text--boxed" role="alert">
+            {error}
+          </p>
+        ) : null}
+        <button type="submit" className="primary-button login-submit" disabled={submitting}>
+          {submitting ? (
+            <>
+              <span className="btn-spinner" aria-hidden />
+              Signing in…
+            </>
+          ) : (
+            'Sign in'
+          )}
         </button>
       </form>
     </section>
@@ -147,7 +204,24 @@ function PatientPage() {
 }
 
 function NotFoundPage() {
-  return <h2>Page not found</h2>
+  return (
+    <div className="not-found-page">
+      <EmptyStateIcon />
+      <h2>Page not found</h2>
+      <p className="status-text">The page you requested does not exist.</p>
+      <a href="/login" className="primary-button">
+        Back to sign in
+      </a>
+    </div>
+  )
+}
+
+function EmptyStateIcon() {
+  return (
+    <span className="empty-state__icon" aria-hidden>
+      🔍
+    </span>
+  )
 }
 
 function App() {

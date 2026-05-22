@@ -1,3 +1,6 @@
+import { EmptyState } from '../components/EmptyState'
+import { LoadingSpinner } from '../components/LoadingSpinner'
+import { StatusBadge } from '../components/StatusBadge'
 import type { AppointmentRow } from './types'
 
 type AppointmentListProps = {
@@ -19,20 +22,6 @@ function formatAppointmentTime(iso: string): string {
   }
 }
 
-function statusBadgeClass(status: string): string {
-  const normalized = status.toUpperCase()
-  if (normalized === 'PENDING') {
-    return 'status-badge status-badge--pending'
-  }
-  if (normalized === 'APPROVED') {
-    return 'status-badge status-badge--approved'
-  }
-  if (normalized === 'COMPLETED') {
-    return 'status-badge status-badge--completed'
-  }
-  return 'status-badge'
-}
-
 export function AppointmentList({
   appointments,
   isLoading,
@@ -40,11 +29,17 @@ export function AppointmentList({
   onDelete,
 }: AppointmentListProps) {
   if (isLoading) {
-    return <p className="status-text">Loading appointments...</p>
+    return <LoadingSpinner label="Loading appointments…" />
   }
 
   if (appointments.length === 0) {
-    return <p className="status-text">No appointments scheduled yet.</p>
+    return (
+      <EmptyState
+        icon="📅"
+        title="No appointments scheduled"
+        description="Create an appointment by linking a patient and doctor."
+      />
+    )
   }
 
   return (
@@ -54,9 +49,7 @@ export function AppointmentList({
           <div className="appointment-card-body">
             <div className="appointment-card-row">
               <h4>{appointment.patientName}</h4>
-              <span className={statusBadgeClass(appointment.status)}>
-                {appointment.status}
-              </span>
+              <StatusBadge status={appointment.status} />
             </div>
             <p className="appointment-doctor">{appointment.doctorName}</p>
             <p className="appointment-meta">

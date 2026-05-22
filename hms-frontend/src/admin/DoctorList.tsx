@@ -1,3 +1,5 @@
+import { EmptyState } from '../components/EmptyState'
+import { LoadingSpinner } from '../components/LoadingSpinner'
 import type { Doctor } from './types'
 
 type DoctorListProps = {
@@ -14,11 +16,17 @@ export function DoctorList({
   onDelete,
 }: DoctorListProps) {
   if (isLoading) {
-    return <p className="status-text">Loading doctors...</p>
+    return <LoadingSpinner label="Loading doctors…" />
   }
 
   if (doctors.length === 0) {
-    return <p className="status-text">No doctors found yet.</p>
+    return (
+      <EmptyState
+        icon="🩺"
+        title="No doctors yet"
+        description="Register doctors to enable appointments and prescriptions."
+      />
+    )
   }
 
   return (

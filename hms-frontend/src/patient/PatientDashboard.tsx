@@ -4,6 +4,9 @@ import { readApiErrorMessage } from '../admin/apiError'
 import type { AppointmentRow, Doctor } from '../admin/types'
 import { API_BASE } from '../auth/authApi'
 import { DashboardHeader } from '../components/DashboardHeader'
+import { EmptyState } from '../components/EmptyState'
+import { LoadingSpinner } from '../components/LoadingSpinner'
+import { StatusBadge } from '../components/StatusBadge'
 import { PrescriptionViewModal } from '../components/PrescriptionViewModal'
 import { fetchPrescriptionsForPatient } from '../prescription/prescriptionApi'
 import type { PrescriptionDto } from '../prescription/types'
@@ -65,20 +68,6 @@ function formatAppointmentTime(iso: string): string {
   } catch {
     return iso
   }
-}
-
-function statusBadgeClass(status: string): string {
-  const normalized = status.toUpperCase()
-  if (normalized === 'PENDING') {
-    return 'status-badge status-badge--pending'
-  }
-  if (normalized === 'APPROVED') {
-    return 'status-badge status-badge--approved'
-  }
-  if (normalized === 'COMPLETED') {
-    return 'status-badge status-badge--completed'
-  }
-  return 'status-badge'
 }
 
 function confidenceBadgeClass(level: string): string {
@@ -466,13 +455,39 @@ export function PatientDashboard() {
     )
   }
 
+  const pendingAppts = appointments.filter(
+    (a) => a.status.toUpperCase() === 'PENDING',
+  ).length
+
   return (
     <section className="dashboard-page patient-dashboard">
-      <DashboardHeader title="Patient Dashboard" />
+      <DashboardHeader
+        title="Patient Dashboard"
+        subtitle={
+          displayName
+            ? `Your care hub — appointments, AI insights, and prescriptions`
+            : undefined
+        }
+      />
 
-      {displayName ? (
-        <p className="status-text">Signed in as {displayName}</p>
-      ) : null}
+      <div className="dashboard-stats">
+        <div className="stat-card stat-card--accent">
+          <p className="stat-card__label">Appointments</p>
+          <p className="stat-card__value">{appointments.length}</p>
+        </div>
+        <div className="stat-card">
+          <p className="stat-card__label">Pending</p>
+          <p className="stat-card__value">{pendingAppts}</p>
+        </div>
+        <div className="stat-card">
+          <p className="stat-card__label">Prescriptions</p>
+          <p className="stat-card__value">{prescriptions.length}</p>
+        </div>
+        <div className="stat-card">
+          <p className="stat-card__label">Doctors</p>
+          <p className="stat-card__value">{doctors.length}</p>
+        </div>
+      </div>
 
       <div className="symptom-ai-hero management-card">
         <div className="management-header">
@@ -604,9 +619,13 @@ export function PatientDashboard() {
         </div>
         {doctorsError && <p className="error-text">{doctorsError}</p>}
         {doctorsLoading ? (
-          <p className="status-text">Loading doctors...</p>
+          <LoadingSpinner label="Loading doctors…" />
         ) : doctors.length === 0 ? (
-          <p className="status-text">No doctors are listed yet.</p>
+          <EmptyState
+            icon="🩺"
+            title="No doctors available"
+            description="Check back later when specialists are registered."
+          />
         ) : (
           <div className="item-list">
             {sortedDoctors.map((doctor) => {
@@ -721,9 +740,13 @@ export function PatientDashboard() {
           <p className="error-text">{appointmentsError}</p>
         )}
         {appointmentsLoading ? (
-          <p className="status-text">Loading your appointments...</p>
+          <LoadingSpinner label="Loading your appointments…" />
         ) : appointments.length === 0 ? (
-          <p className="status-text">You have no appointments yet.</p>
+          <EmptyState
+            icon="📅"
+            title="No appointments yet"
+            description="Book a visit with a doctor using the form above."
+          />
         ) : (
           <div className="item-list">
             {appointments.map((a) => (
@@ -734,9 +757,7 @@ export function PatientDashboard() {
                 <div className="appointment-card-body">
                   <div className="appointment-card-row">
                     <h4>{a.doctorName}</h4>
-                    <span className={statusBadgeClass(a.status)}>
-                      {a.status}
-                    </span>
+                    <StatusBadge status={a.status} />
                   </div>
                   <p className="appointment-meta">
                     {formatAppointmentTime(a.appointmentTime)}
@@ -762,12 +783,13 @@ export function PatientDashboard() {
           <p className="error-text">{prescriptionsError}</p>
         ) : null}
         {prescriptionsLoading ? (
-          <p className="status-text">Loading prescriptions...</p>
+          <LoadingSpinner label="Loading prescriptions…" />
         ) : sortedPrescriptions.length === 0 ? (
-          <p className="status-text patient-prescriptions-empty">
-            You have no prescriptions yet. After your doctor completes a visit,
-            they may add one here.
-          </p>
+          <EmptyState
+            icon="💊"
+            title="No prescriptions yet"
+            description="After your doctor completes a visit, prescriptions will appear here."
+          />
         ) : (
           <div className="item-list">
             {sortedPrescriptions.map((rx) => (
