@@ -6,6 +6,8 @@ import Hospital_Management_System.demo.Insurance.InsuranceEntity;
 import Hospital_Management_System.demo.appointment.AppointmentEntity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -31,12 +33,15 @@ public class PatientEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank(message = "Name is required")
     private String name;
 
     @Column(name = "birth_date")
     private LocalDate birthdate;
 
     @Column(unique = true)
+    @NotBlank(message = "Email is required")
+    @Pattern(regexp = "^.+@.+\\..+$", message = "Invalid email format")
     private String email;
 
     private String gender;
@@ -54,7 +59,11 @@ public class PatientEntity {
 
 
     @JsonIgnore
-    @OneToMany(mappedBy = "patient",cascade = {CascadeType.REMOVE},orphanRemoval = true)
+    @OneToMany(
+            mappedBy = "patient",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
     @ToString.Exclude
-    private List<AppointmentEntity> appointmentEntities;
+    private List<AppointmentEntity> appointments;
 }

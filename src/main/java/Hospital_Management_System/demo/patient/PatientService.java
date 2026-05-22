@@ -1,21 +1,26 @@
 package Hospital_Management_System.demo.patient;
 
+import Hospital_Management_System.demo.common.EmailUniquenessService;
 import Hospital_Management_System.demo.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class PatientService {
-    private PatientRepository patientRepository;
+    private final PatientRepository patientRepository;
+    private final EmailUniquenessService emailUniquenessService;
 
-    public PatientService(PatientRepository patientRepository) {
+    public PatientService(
+            PatientRepository patientRepository,
+            EmailUniquenessService emailUniquenessService) {
         this.patientRepository = patientRepository;
+        this.emailUniquenessService = emailUniquenessService;
     }
 
 
     public PatientEntity createNewPatient(PatientEntity patient) {
+        emailUniquenessService.ensureEmailIsAvailable(patient.getEmail());
         return patientRepository.save(patient);
 
     }
@@ -26,6 +31,15 @@ public class PatientService {
 
     public PatientEntity getPatientById(Long id) {
         return patientRepository.findById(id).orElseThrow(()->new ResourceNotFoundException("patient not found with id "));
+
+    }
+
+        public void deletePatientById(Long id) {
+        if (!patientRepository.existsById(id)) {
+            throw new ResourceNotFoundException("patient not found with id ");
+        }
+         patientRepository.deleteById(id);
+
 
     }
 }

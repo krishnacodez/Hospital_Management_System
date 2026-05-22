@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/prescriptions")
 public class PrescriptionController {
@@ -24,6 +25,7 @@ public class PrescriptionController {
                 prescriptionService.createPrescription(dto)
         );
     }
+
     @GetMapping
     public ApiResponse<List<PrescriptionResponseDto>> getAll() {
         return new ApiResponse<>(true, "All prescriptions", prescriptionService.getAll());
@@ -32,5 +34,10 @@ public class PrescriptionController {
     @GetMapping("/patient/{id}")
     public ApiResponse<List<PrescriptionResponseDto>> getByPatient(@PathVariable Long id) {
         return new ApiResponse<>(true, "Patient prescriptions", prescriptionService.getByPatient(id));
+    }
+
+    @GetMapping("/doctor/{doctorId}")
+    public ApiResponse<List<PrescriptionResponseDto>> getByDoctor(@PathVariable Long doctorId) {
+        return new ApiResponse<>(true, "Doctor prescriptions", prescriptionService.getByDoctor(doctorId));
     }
 }

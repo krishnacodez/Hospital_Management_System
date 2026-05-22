@@ -7,6 +7,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import Hospital_Management_System.demo.patient.PatientEntity;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -26,32 +28,44 @@ public class PrescriptionEntity {
 
     private String notes;
 
+    private LocalDateTime createdAt;
+
     @JsonIgnore
     @ToString.Exclude
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "patient_id")
     private PatientEntity patient;
-    @ToString.Exclude
 
     @JsonIgnore
+    @ToString.Exclude
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "doctor_id")
     private DoctorEntity doctor;
-    @ToString.Exclude
-
-//    @JsonIgnore
-//    @OneToMany(mappedBy = "prescription",
-//            cascade = CascadeType.ALL,
-//            orphanRemoval = true,
-//            fetch = FetchType.LAZY)
-//    private List<PrescriptionMedicine> medicines;
 
     @JsonIgnore
-    @OneToOne(fetch = FetchType.LAZY)
+    @ToString.Exclude
+    @OneToMany(
+            mappedBy = "prescription",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY
+    )
+    @Builder.Default
+    private List<PrescriptionMedicine> medicines = new ArrayList<>();
+
+    @JsonIgnore
+    @ToString.Exclude
+    @ManyToOne
     @JoinColumn(name = "appointment_id")
     private AppointmentEntity appointment;
 
-
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
 }
+
 

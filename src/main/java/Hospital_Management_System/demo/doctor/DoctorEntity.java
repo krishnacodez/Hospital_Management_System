@@ -5,6 +5,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import Hospital_Management_System.demo.department.DepartmentEntity;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
 import java.util.ArrayList;
@@ -24,24 +26,40 @@ public class DoctorEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @Column(nullable = false,length = 100)
+    @NotBlank(message = "Name is required")
     private String name;
     @Column(length = 100)
     private String specialization;
-    @Column(nullable = false,unique = true,length = 100)
+    @Column(nullable = false, unique = true, length = 100)
+    @Email(message = "Invalid email")
     private String email;
 
     @ToString.Exclude
     @JsonIgnore
     @ManyToMany(mappedBy = "doctors",fetch = FetchType.LAZY)
+    @Builder.Default
     private Set<DepartmentEntity> departments = new HashSet<>();
 
     @ToString.Exclude
 
     @JsonIgnore
     @OneToMany(mappedBy = "doctor",fetch = FetchType.LAZY)
+    @Builder.Default
     private List<AppointmentEntity> appointments = new ArrayList<>();
 
     @Column(nullable = false)
-    private boolean available = true;
+    @Builder.Default
+    private Boolean available = true;
+
+    @PrePersist
+    @PreUpdate
+    private void applyDefaults() {
+        if (available == null) {
+            available = true;
+        }
+        if (email == null || email.trim().isEmpty()) {
+            email = "doc" + System.currentTimeMillis() + "@test.com";
+        }
+    }
 
 }

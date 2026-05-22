@@ -1,17 +1,16 @@
 package Hospital_Management_System.demo.doctor;
 
-import Hospital_Management_System.demo.patient.PatientEntity;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+
+@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("doctors")
 public class DoctorController {
 
-    private DoctorService doctorService;
+    private final DoctorService doctorService;
 
     public DoctorController(DoctorService doctorService){
         this.doctorService = doctorService;
@@ -20,6 +19,7 @@ public class DoctorController {
 
     @PostMapping
     public DoctorEntity createNewDoctor(@RequestBody DoctorEntity doctor){
+        System.out.println(doctor);
         return doctorService.createNewDoctor(doctor);
     }
 
@@ -31,5 +31,10 @@ public class DoctorController {
     @GetMapping("/{id}")
     public DoctorEntity getDoctorById(@PathVariable Long id){
         return doctorService.getDoctorById(id);
+    }
+
+    @DeleteMapping("/{id}")
+    public void deleteDoctorById(@PathVariable Long id){
+        doctorService.deleteDoctorById(id);
     }
 }
