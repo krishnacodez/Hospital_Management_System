@@ -1,4 +1,9 @@
-export const API_BASE = 'http://localhost:8080'
+const BASE_URL = (
+  import.meta.env.VITE_API_URL ||
+  "https://hospital-management-system-3hsa.onrender.com"
+).replace(/\/+$/, "");
+
+export const API_BASE = BASE_URL
 
 export type LoginRole = 'ADMIN' | 'DOCTOR' | 'PATIENT'
 

@@ -10,6 +10,7 @@ import { DoctorList } from './DoctorList'
 import { PatientForm } from './PatientForm'
 import { PatientList } from './PatientList'
 import { readApiErrorMessage } from './apiError'
+import { API_BASE } from '../auth/authApi'
 import type { AppointmentRow, Doctor, Patient } from './types'
 
 type ActiveSection = 'patients' | 'doctors' | 'appointments'
@@ -86,7 +87,7 @@ export function AdminDashboard() {
     const loadPatients = async () => {
       try {
         setPatientsLoading(true)
-        const response = await fetch('http://localhost:8080/patients')
+        const response = await fetch(`${API_BASE}/patients`)
 
         if (!response.ok) {
           throw new Error('Failed to load patients.')
@@ -112,7 +113,7 @@ export function AdminDashboard() {
     const loadDoctors = async () => {
       try {
         setDoctorsLoading(true)
-        const response = await fetch('http://localhost:8080/doctors')
+        const response = await fetch(`${API_BASE}/doctors`)
 
         if (!response.ok) {
           throw new Error('Failed to load doctors.')
@@ -145,7 +146,7 @@ export function AdminDashboard() {
         setAppointmentError('')
 
         if (!patientsLoadedRef.current) {
-          const pRes = await fetch('http://localhost:8080/patients')
+          const pRes = await fetch(`${API_BASE}/patients`)
           if (pRes.ok) {
             const data: Patient[] = await pRes.json()
             setPatients(data)
@@ -154,7 +155,7 @@ export function AdminDashboard() {
         }
 
         if (!doctorsLoadedRef.current) {
-          const dRes = await fetch('http://localhost:8080/doctors')
+          const dRes = await fetch(`${API_BASE}/doctors`)
           if (dRes.ok) {
             const data: Doctor[] = await dRes.json()
             setDoctors(data)
@@ -195,7 +196,7 @@ export function AdminDashboard() {
     try {
       setPatientSubmitting(true)
       setPatientError('')
-      const response = await fetch('http://localhost:8080/patients', {
+      const response = await fetch(`${API_BASE}/patients`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -236,7 +237,7 @@ export function AdminDashboard() {
   const handleDeletePatient = async (id: number) => {
     try {
       setDeletingPatientId(id)
-      const response = await fetch(`http://localhost:8080/patients/${id}`, {
+      const response = await fetch(`${API_BASE}/patients/${id}`, {
         method: 'DELETE',
       })
 
@@ -281,7 +282,7 @@ export function AdminDashboard() {
       setDoctorSubmitting(true)
       setDoctorError('')
 
-      const response = await fetch('http://localhost:8080/doctors', {
+      const response = await fetch(`${API_BASE}/doctors`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -324,7 +325,7 @@ export function AdminDashboard() {
   const handleDeleteDoctor = async (id: number) => {
     try {
       setDeletingDoctorId(id)
-      const response = await fetch(`http://localhost:8080/doctors/${id}`, {
+      const response = await fetch(`${API_BASE}/doctors/${id}`, {
         method: 'DELETE',
       })
 
@@ -363,7 +364,7 @@ export function AdminDashboard() {
       setAppointmentSubmitting(true)
       setAppointmentError('')
 
-      const response = await fetch('http://localhost:8080/appointments', {
+      const response = await fetch(`${API_BASE}/appointments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -413,7 +414,7 @@ export function AdminDashboard() {
   const handleDeleteAppointment = async (id: number) => {
     try {
       setDeletingAppointmentId(id)
-      const response = await fetch(`http://localhost:8080/appointments/${id}`, {
+      const response = await fetch(`${API_BASE}/appointments/${id}`, {
         method: 'DELETE',
       })
 

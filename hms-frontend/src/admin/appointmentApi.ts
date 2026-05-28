@@ -1,4 +1,5 @@
 import type { AppointmentRow } from './types'
+import { API_BASE } from '../auth/authApi'
 
 type PaginatedAppointments = {
   content: AppointmentRow[]
@@ -17,7 +18,7 @@ export async function fetchAllAppointments(): Promise<AppointmentRow[]> {
 
   for (;;) {
     const response = await fetch(
-      `http://localhost:8080/appointments?page=${page}&size=${pageSize}`,
+      `${API_BASE}/appointments?page=${page}&size=${pageSize}`,
     )
     if (!response.ok) {
       throw new Error('Failed to load appointments.')
