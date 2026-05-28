@@ -9,6 +9,15 @@ export type LoginResponseData = {
   name?: string | null
 }
 
+export type RegisterPatientRequest = {
+  name: string
+  email: string
+  password: string
+  age: number
+  gender: string
+  phone: string
+}
+
 type ApiEnvelope<T> = {
   success: boolean
   message?: string
@@ -54,5 +63,27 @@ export function persistAuthSession(data: LoginResponseData) {
     localStorage.setItem('name', data.name)
   } else {
     localStorage.removeItem('name')
+  }
+}
+
+export async function registerPatientRequest(
+  payload: RegisterPatientRequest,
+): Promise<void> {
+  const response = await fetch(`${API_BASE}/auth/register/patient`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+
+  const body = (await response.json()) as ApiEnvelope<unknown> & {
+    errors?: Record<string, string>
+  }
+
+  if (!response.ok || body.success === false) {
+    if (body.errors) {
+      const first = Object.values(body.errors)[0]
+      throw new Error(first || body.message || 'Registration failed')
+    }
+    throw new Error(body.message || 'Registration failed')
   }
 }

@@ -5,6 +5,7 @@ package Hospital_Management_System.demo.patient;
 import Hospital_Management_System.demo.Insurance.InsuranceEntity;
 import Hospital_Management_System.demo.appointment.AppointmentEntity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -44,7 +45,12 @@ public class PatientEntity {
     @Pattern(regexp = "^.+@.+\\..+$", message = "Invalid email format")
     private String email;
 
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private String password;
+
     private String gender;
+
+    private String phone;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "blood_group")

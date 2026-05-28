@@ -63,6 +63,7 @@ export function AdminDashboard() {
   const [doctorName, setDoctorName] = useState('')
   const [doctorSpecialization, setDoctorSpecialization] = useState('')
   const [doctorEmail, setDoctorEmail] = useState('')
+  const [doctorPassword, setDoctorPassword] = useState('')
   const [doctorsLoading, setDoctorsLoading] = useState(false)
   const [doctorSubmitting, setDoctorSubmitting] = useState(false)
   const [deletingDoctorId, setDeletingDoctorId] = useState<number | null>(null)
@@ -258,9 +259,15 @@ export function AdminDashboard() {
     const trimmedName = doctorName.trim()
     const trimmedSpecialization = doctorSpecialization.trim()
     const trimmedEmail = doctorEmail.trim()
+    const trimmedPassword = doctorPassword.trim()
 
-    if (trimmedName === '' || trimmedSpecialization === '') {
-      setDoctorError('Name and specialization are required.')
+    if (
+      trimmedName === '' ||
+      trimmedSpecialization === '' ||
+      trimmedEmail === '' ||
+      trimmedPassword === ''
+    ) {
+      setDoctorError('Name, specialization, email, and password are required.')
       return
     }
 
@@ -274,8 +281,6 @@ export function AdminDashboard() {
       setDoctorSubmitting(true)
       setDoctorError('')
 
-      const email = trimmedEmail || `doc${Date.now()}@test.com`
-
       const response = await fetch('http://localhost:8080/doctors', {
         method: 'POST',
         headers: {
@@ -284,7 +289,8 @@ export function AdminDashboard() {
         body: JSON.stringify({
           name: formattedName,
           specialization: trimmedSpecialization,
-          email,
+          email: trimmedEmail,
+          password: trimmedPassword,
           available: true,
         }),
       })
@@ -304,6 +310,7 @@ export function AdminDashboard() {
       setDoctorName('')
       setDoctorSpecialization('')
       setDoctorEmail('')
+      setDoctorPassword('')
       setDoctorError('')
     } catch (err) {
       const message =
@@ -538,10 +545,12 @@ export function AdminDashboard() {
             name={doctorName}
             specialization={doctorSpecialization}
             email={doctorEmail}
+            password={doctorPassword}
             isSubmitting={doctorSubmitting}
             onNameChange={setDoctorName}
             onSpecializationChange={setDoctorSpecialization}
             onEmailChange={setDoctorEmail}
+            onPasswordChange={setDoctorPassword}
             onSubmit={handleAddDoctor}
           />
 
