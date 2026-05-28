@@ -2,6 +2,7 @@ package Hospital_Management_System.demo.doctor;
 
 import Hospital_Management_System.demo.appointment.AppointmentEntity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import Hospital_Management_System.demo.department.DepartmentEntity;
 import jakarta.persistence.*;
@@ -33,6 +34,9 @@ public class DoctorEntity {
     @Column(nullable = false, unique = true, length = 100)
     @Email(message = "Invalid email")
     private String email;
+
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private String password;
 
     @ToString.Exclude
     @JsonIgnore
