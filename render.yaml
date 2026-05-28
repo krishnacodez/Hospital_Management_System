@@ -1,6 +1,7 @@
+
 services:
   - type: web
     name: medisphere-backend
-    env: java
+    runtime: java
     buildCommand: "./mvnw clean package"
     startCommand: "java -jar target/*.jar"
